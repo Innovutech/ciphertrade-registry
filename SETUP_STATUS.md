@@ -3,7 +3,7 @@
 Repository: `Innovutech/ciphertrade-registry` (public, `main`).
 Reviewer: `iamsstef`, GitHub user ID `115187950`.
 
-## Intended GitHub configuration
+## Verified GitHub configuration
 
 - CI check `Registry checks` runs the publisher tests without signing secrets.
 - `main` requires pull requests and the current CI check; force pushes/deletion are
@@ -14,11 +14,15 @@ Reviewer: `iamsstef`, GitHub user ID `115187950`.
 - Self-review is permitted so this sole operator can approve manually triggered
   signing runs. Add another reviewer before enabling prevention of self-review.
 - Workflow token defaults are read-only and cannot approve pull requests.
+- GitHub secret scanning and push protection are enabled. These are additional
+  checks, not a guarantee that every possible private-key format is detected.
 - `Publish signed metadata` remains disabled until key provisioning is complete.
 
-Remote settings must be read back after setup; source files alone do not enforce
-GitHub environment/branch settings. The setup completion message records the
-actual verified result and links the first CI run.
+These settings were applied and read back through the GitHub API. Source files
+alone do not enforce GitHub environment/branch settings.
+[The first hosted CI run passed](https://github.com/Innovutech/ciphertrade-registry/actions/runs/37379956789),
+including all 16 publisher tests. No signing keys or environment secrets have been
+generated or installed. Authenticated publication is not active.
 
 ## Remaining operator steps
 
