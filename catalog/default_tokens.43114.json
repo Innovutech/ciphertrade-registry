@@ -1,0 +1,34 @@
+[
+  {
+    "tokenAddress": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    "tokenSymbol": "USDC",
+    "cgCoinId": "usd-coin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+    "tokenSymbol": "USDT",
+    "cgCoinId": "tether",
+    "logoUrl": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501661",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
+    "tokenSymbol": "WETH.e",
+    "cgCoinId": "avalanche-bridged-weth-avalanche",
+    "logoUrl": "https://assets.coingecko.com/coins/images/39707/large/WETH.PNG",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+    "tokenSymbol": "WBTC",
+    "cgCoinId": "wrapped-bitcoin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/7598/large/WBTCLOGO.png",
+    "decimals": 8,
+    "verification": "official"
+  }
+]

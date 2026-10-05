@@ -1,0 +1,120 @@
+name: Publish signed metadata
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1,4'
+permissions:
+  contents: read
+concurrency:
+  group: signed-metadata-publication
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - run: npm test
+      - run: node scripts/workflow.mjs check-setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: trustwallet/assets
+          ref: master
+          path: sources/trustwallet
+          persist-credentials: false
+          sparse-checkout: blockchains
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ethereum/clear-signing-erc7730-registry
+          path: sources/registry
+          persist-credentials: false
+      - run: node scripts/workflow.mjs prepare
+      - run: node src/cli.ts prepare work/config.json work/prepared.json
+      - id: digest
+        run: node scripts/workflow.mjs digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: prepared-metadata
+          path: |
+            work/prepared.json
+            work/review.json
+          retention-days: 14
+  sign:
+    needs: prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        role: [tokens, descriptors, configuration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: metadata-${{ matrix.role }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prepared-metadata
+          path: work
+      - run: node scripts/workflow.mjs sign-config
+        env:
+          METADATA_ROLE: ${{ matrix.role }}
+          APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
+      - run: node src/cli.ts sign work/sign.json work/${{ matrix.role }}.json
+        env:
+          METADATA_SIGNING_KEYS: ${{ secrets.METADATA_SIGNING_KEYS }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: signed-${{ matrix.role }}
+          path: work/${{ matrix.role }}.json
+          retention-days: 14
+  publish:
+    needs: [prepare, sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: '*metadata'
+          merge-multiple: true
+          path: work
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: signed-*
+          merge-multiple: true
+          path: work
+      - run: node scripts/workflow.mjs assemble
+        env:
+          APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
+      - run: gh release create "metadata-${GITHUB_RUN_NUMBER}" dist/publication.json dist/publication.sha256 --title "Metadata ${GITHUB_RUN_NUMBER}" --notes "Validated signed metadata publication."
+        env:
+          GH_TOKEN: ${{ github.token }}

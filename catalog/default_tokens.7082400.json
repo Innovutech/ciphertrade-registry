@@ -1,0 +1,127 @@
+[
+    {
+        "tokenAddress": "0x8bca4e6bbE402DB4aD189A316137aD08206154FB",
+        "private": false,
+        "tokenSymbol": "WETH",
+        "cgCoinId": "ethereum",
+        "logoUrl": "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1696501628",
+        "decimals": 18,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x5dBDb2E5D51c3FFab5D6B862Caa11FCe1D83F492",
+        "private": false,
+        "tokenSymbol": "WBTC",
+        "cgCoinId": "bitcoin",
+        "logoUrl": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1696501400",
+        "decimals": 8,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0xe3E2cd3Abf412c73a404b9b8227B71dE3CfE829D",
+        "private": false,
+        "tokenSymbol": "WADA",
+        "cgCoinId": "cardano",
+        "logoUrl": "https://assets.coingecko.com/coins/images/975/large/cardano.png?1696502090",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x9e961430053cd5AbB3b060544cEcCec848693Cf0",
+        "private": false,
+        "tokenSymbol": "USDT",
+        "cgCoinId": "tether",
+        "logoUrl": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501661",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x63f3D2Cc8F5608F57ce6E5Aa3590A2Beb428D19C",
+        "private": false,
+        "tokenSymbol": "USDC.e",
+        "cgCoinId": "usd-coin",
+        "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x878a42D3cB737DEC9E6c7e7774d973F46fd8ed4C",
+        "private": false,
+        "tokenSymbol": "gCOTI",
+        "cgCoinId": "coti-governance-token",
+        "logoUrl": "https://assets.coingecko.com/coins/images/32930/large/gCOTI_logo_icon200x200.png?1700669092",
+        "decimals": 18,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0xcEF137E96eDF68EE99D4CdEa7085f154d74895cD",
+        "private": true,
+        "tokenSymbol": "p.USDT",
+        "cgCoinId": "tether",
+        "logoUrl": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501661",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0xB50F1680a4C69145ABc09A2A71c8D5b8051578cF",
+        "private": true,
+        "tokenSymbol": "p.WBTC",
+        "cgCoinId": "bitcoin",
+        "logoUrl": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1696501400",
+        "decimals": 8,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0xF009BADb181d471995a1CFF406C3Db7B180F64eA",
+        "private": true,
+        "tokenSymbol": "p.WETH",
+        "cgCoinId": "ethereum",
+        "logoUrl": "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1696501628",
+        "decimals": 18,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x1245f50a3E9129A219b4bf66D10fEaEA47467B69",
+        "private": true,
+        "tokenSymbol": "p.wADA",
+        "cgCoinId": "cardano",
+        "logoUrl": "https://assets.coingecko.com/coins/images/975/large/cardano.png?1696502090",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x37f78dcCd15876F74391EF1F01b76557D9FF1dea",
+        "private": true,
+        "tokenSymbol": "p.USDC.e",
+        "cgCoinId": "usd-coin",
+        "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+        "decimals": 6,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x6cE8907414986E73De9e7D28d62Ea2080F8E88E1",
+        "private": true,
+        "tokenSymbol": "p.COTI",
+        "cgCoinId": "coti",
+        "logoUrl": "https://assets.coingecko.com/coins/images/2962/large/Coti.png",
+        "decimals": 18,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0x1503b02a4Aa27812306c65116FD23b733603F142",
+        "private": true,
+        "tokenSymbol": "p.gCOTI",
+        "cgCoinId": "coti-governance-token",
+        "logoUrl": "https://assets.coingecko.com/coins/images/32930/large/gCOTI_logo_icon200x200.png?1700669092",
+        "decimals": 18,
+        "verification": "official"
+    },
+    {
+        "tokenAddress": "0xcF802726700948Ef16Fd5E4172393fB211E23E66",
+        "private": true,
+        "tokenSymbol": "HOTDOG",
+        "logoUrl": "https://ciphertrade.org/public/token_meta/0xe8c3d2248a578e9e020c2447f8148e606090fbfe/logo.webp",
+        "decimals": 18,
+        "verification": "official"
+    }
+]

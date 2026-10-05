@@ -1,0 +1,163 @@
+[
+  {
+    "tokenAddress": "0xD2F2692B83C3ecDF2EAa0f7c2632BBd46Ae1cC91",
+    "private": true,
+    "tokenSymbol": "p.COTI",
+    "cgCoinId": "coti",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xE180548963Fc30329e15BC104d753f82a8C18865",
+    "private": false,
+    "tokenSymbol": "WCOTI",
+    "name": "CipherTrade Wrapped COTI",
+    "logoUrl": "https://assets.coingecko.com/coins/images/2962/large/Coti.png",
+    "cgCoinId": "coti",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x7637c7838ec4ec6b85080f28a678f8e234bb83d1",
+    "private": false,
+    "tokenSymbol": "gCOTI",
+    "cgCoinId": "coti-governance-token",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xf1feebc4376c68b7003450ae66343ae59ab37d3c",
+    "private": false,
+    "tokenSymbol": "USDC.e",
+    "cgCoinId": "usd-coin",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x63C9a1D05471fc8d47C83968725Dcfdcb5410392",
+    "private": true,
+    "tokenSymbol": "p.USDC.e",
+    "cgCoinId": "usd-coin",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xfa6f73446b17a97a56e464256da54ad43c2cbc3e",
+    "private": false,
+    "tokenSymbol": "USDT",
+    "cgCoinId": "tether",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x42107250C3D385ddfABE69ab6de163702040FeB0",
+    "private": true,
+    "tokenSymbol": "p.USDT",
+    "cgCoinId": "tether",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x639acc80569c5fc83c6fbf2319a6cc38bbfe26d1",
+    "private": false,
+    "tokenSymbol": "wETH",
+    "cgCoinId": "ethereum",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x4727FE8D8450CEBcB142331FAc034Cd8d311f0E5",
+    "private": true,
+    "tokenSymbol": "p.wETH",
+    "cgCoinId": "ethereum",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x8c39b1fd0e6260fdf20652fc436d25026832bfea",
+    "private": false,
+    "tokenSymbol": "wBTC",
+    "cgCoinId": "bitcoin",
+    "decimals": 8,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x65449561257ba5756631Aa0d34f07f6457a319be",
+    "private": true,
+    "tokenSymbol": "p.wBTC",
+    "cgCoinId": "bitcoin",
+    "decimals": 8,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xe757ca19d2c237aa52ebb1d2e8e4368eea3eb331",
+    "private": false,
+    "tokenSymbol": "wADA",
+    "cgCoinId": "cardano",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x3a8b49aAC1dAD86aa45a75231FbeC5bEb810e416",
+    "private": true,
+    "tokenSymbol": "p.wADA",
+    "cgCoinId": "cardano",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x9ec8c1459b92e8f19fe160e63e169e7efaaa4359",
+    "private": false,
+    "tokenSymbol": "TPS003",
+    "logoUrl": "https://coti.io/downloads/brand-kit/coti-earn/coti-earn-logo-3.png",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x3F577B64E5CE5F2d00607770368d623cECc4FF7D",
+    "private": false,
+    "tokenSymbol": "TPS004",
+    "logoUrl": "https://coti.io/downloads/brand-kit/coti-earn/coti-earn-logo-3.png",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xfc075bd3e22d337c19b7ca25635282ad8e24941a",
+    "private": false,
+    "tokenSymbol": "NIGHT",
+    "cgCoinId": "midnight-3",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x6a1136eb437d2ed6a0916f253ebfcded06e98989",
+    "private": false,
+    "tokenSymbol": "GM",
+    "logoUrl": "https://ciphertrade.org/public/token_meta/0x6a1136eb437d2ed6a0916f253ebfcded06e98989/logo.webp",
+    "decimals": 18,
+    "verification": "community"
+  },
+  {
+    "tokenAddress": "0x659ad6d1f7353df13dec552cc05c9c15afdd04e8",
+    "private": false,
+    "tokenSymbol": "PENGO",
+    "logoUrl": "https://coti.carbondefi.xyz/tokens/coti/0x659AD6d1F7353Df13Dec552cc05c9c15AfdD04e8.webp",
+    "decimals": 18,
+    "verification": "community"
+  },
+  {
+    "tokenAddress": "0x5085Ea0611A9C49316972C57390ca25C9CF236AB",
+    "private": true,
+    "tokenSymbol": "HOTDOG",
+    "logoUrl": "https://ciphertrade.org/public/token_meta/0xe8c3d2248a578e9e020c2447f8148e606090fbfe/logo.webp",
+    "decimals": 18,
+    "verification": "community"
+  },
+  {
+    "tokenAddress": "0x394b3c4328160f000763Ca391D07F902926EDaAc",
+    "private": true,
+    "tokenSymbol": "p.gCOTI",
+    "decimals": 18,
+    "verification": "official"
+  }
+]

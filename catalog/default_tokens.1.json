@@ -1,0 +1,50 @@
+[
+  {
+    "tokenAddress": "0xddb3422497e61e13543bea06989c0789117555c5",
+    "tokenSymbol": "COTI",
+    "cgCoinId": "coti",
+    "logoUrl": "https://assets.coingecko.com/coins/images/2962/large/Coti.png",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xAf2CA40d3fc4459436D11B94d21FA4b8A89fB51d",
+    "tokenSymbol": "gCOTI",
+    "cgCoinId": "coti-governance-token",
+    "logoUrl": "https://assets.coingecko.com/coins/images/32930/large/gCOTI_logo_icon200x200.png?1700669092",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "tokenSymbol": "USDC",
+    "cgCoinId": "usd-coin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "tokenSymbol": "USDT",
+    "cgCoinId": "tether",
+    "logoUrl": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501661",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "tokenSymbol": "WETH",
+    "cgCoinId": "ethereum",
+    "logoUrl": "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1696501628",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+    "tokenSymbol": "WBTC",
+    "cgCoinId": "bitcoin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1696501400",
+    "decimals": 8,
+    "verification": "official"
+  }
+]

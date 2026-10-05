@@ -1,0 +1,45 @@
+[
+  {
+    "tokenAddress": "0x55c32c7821985dedc79757802168b39af729f99c",
+    "private": false,
+    "tokenSymbol": "TPS002",
+    "logoUrl": "https://coti.io/downloads/brand-kit/coti-earn/coti-earn-logo-3.png",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x64ec0e875b00dd50a4661462040e7c35084bcb58",
+    "private": false,
+    "tokenSymbol": "TPS001",
+    "logoUrl": "https://coti.io/downloads/brand-kit/coti-earn/coti-earn-logo-3.png",
+    "decimals": 18,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0xb70c55bd0823436F44877DC6A9f46E0C55f2C3A8",
+    "private": false,
+    "tokenSymbol": "WISP",
+    "decimals": 6,
+    "logoUrl": "https://raw.githubusercontent.com/RosuLaurentiu/coti-token-list/codex/chainwhisper-logo/assets/chainwhisper.png",
+    "verification": "community"
+  },
+  {
+    "tokenAddress": "0x682e3142e62a7aDe2a0CA5bdC87b205CaDe4B17a",
+    "private": true,
+    "tokenSymbol": "p.WISP",
+    "decimals": 6,
+    "logoUrl": "https://raw.githubusercontent.com/RosuLaurentiu/coti-token-list/codex/chainwhisper-logo/assets/chainwhisper.png",
+    "verification": "community",
+    "marketDataReference": {
+      "tokenAddress": "0xb70c55bd0823436F44877DC6A9f46E0C55f2C3A8"
+    }
+  },
+  {
+    "tokenAddress": "0x256353f5B4b515f488876dD1CAc2300c6C6f98B7",
+    "private": false,
+    "tokenSymbol": "WBBT",
+    "logoUrl": "https://raw.githubusercontent.com/Innovutech/CipherTrade/main/token-metadata/chains/2632500/0x256353f5b4b515f488876dd1cac2300c6c6f98b7/logo.png",
+    "name": "Wrapped BabyTuru",
+    "verification": "community"
+  }
+]

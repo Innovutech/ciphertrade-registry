@@ -1,0 +1,13 @@
+{
+  "name": "cipher-metadata-publisher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --test src/*.test.ts",
+    "prepare:metadata": "node src/cli.ts prepare",
+    "sign:metadata": "node src/cli.ts sign"
+  },
+  "dependencies": { "ethers": "6.17.0" }
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "tokenAddress": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "tokenSymbol": "USDC",
+    "cgCoinId": "usd-coin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+    "decimals": 6,
+    "verification": "official"
+  }
+]

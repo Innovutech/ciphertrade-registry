@@ -1,0 +1,18 @@
+[
+  {
+    "tokenAddress": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    "tokenSymbol": "USDC",
+    "cgCoinId": "usd-coin",
+    "logoUrl": "https://assets.coingecko.com/coins/images/6319/large/USDC.png?1769615602",
+    "decimals": 6,
+    "verification": "official"
+  },
+  {
+    "tokenAddress": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+    "tokenSymbol": "WETH",
+    "cgCoinId": "ethereum",
+    "logoUrl": "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1696501628",
+    "decimals": 18,
+    "verification": "official"
+  }
+]

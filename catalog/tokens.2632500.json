@@ -1,0 +1,42 @@
+[
+  {
+    "tokenAddress": "0x4c7070ab30d8a08696c0b5ff4ee9fde71ec374a9",
+    "private": false,
+    "tokenSymbol": "blood",
+    "logoUrl": "https://www.innovunode.io/wp-content/themes/v2_innovunode_wp/icons/blood.webp"
+  },
+  {
+    "tokenAddress": "0x23340b675e8e9b7dd695c8d0449fc75b9199084b",
+    "private": false,
+    "tokenSymbol": "GN",
+    "logoUrl": "https://www.innovunode.io/wp-content/themes/v2_innovunode_wp/icons/gn.webp"
+  },
+  {
+    "tokenAddress": "0xc33429839d8109019330951909ad7a44535fb799",
+    "private": true,
+    "tokenSymbol": "Taco"
+  },
+  {
+    "tokenAddress": "0x6aef9b40a47a530eb5c449425a7fc19a996dc1f7",
+    "private": false,
+    "tokenSymbol": "snack",
+    "logoUrl": "https://www.innovunode.io/wp-content/themes/v2_innovunode_wp/icons/snack.webp"
+  },
+  {
+    "tokenAddress": "0xccf69cc452f6ed37fd771d48d7ebfb8ac646270c",
+    "private": false,
+    "tokenSymbol": "Coffee",
+    "logoUrl": "https://www.innovunode.io/wp-content/themes/v2_innovunode_wp/icons/coffee.webp"
+  },
+  {
+    "tokenAddress": "0xb480f0ffe3080d6613b12821cea7ad61296932da",
+    "private": true,
+    "tokenSymbol": "Beer"
+  },
+  {
+    "tokenAddress": "0x574560f8b1d0efc321e2c99471002f586caddc83",
+    "private": false,
+    "tokenSymbol": "WTF",
+    "logoUrl": "https://www.innovunode.io/wp-content/themes/v2_innovunode_wp/icons/wtf.webp"
+  }
+]
