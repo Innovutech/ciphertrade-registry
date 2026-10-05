@@ -1,4 +1,9 @@
 {
   "schema": 1,
-  "keys": []
+  "keys": [
+    {
+      "id": "root-v1",
+      "publicKey": "0x023e19af8d4f2571facff1546da9757ed89a87ff356e81437268e9cc651c498faf"
+    }
+  ]
 }

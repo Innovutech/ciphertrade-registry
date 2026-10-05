@@ -1,0 +1,42 @@
+{
+  "rootId": "root-v1",
+  "payload": {
+    "schema": 1,
+    "sequence": 1,
+    "issuedAt": 1791240008349,
+    "expiresAt": 1793832009349,
+    "keys": [
+      {
+        "id": "tokens-v1",
+        "publicKey": "0x0200a140575062a51f9260ebe5bec9cdc5bbc27ac8a07f0d8793a6ef6e1ad71515",
+        "kinds": ["token", "asset"],
+        "notBefore": 1791239949349,
+        "expiresAt": 1822776009349
+      },
+      {
+        "id": "descriptors-v1",
+        "publicKey": "0x028e0b5af3de01436399d63c88004d015935e082c9923492e4f79840135a0183b3",
+        "kinds": ["descriptor"],
+        "notBefore": 1791239949349,
+        "expiresAt": 1822776009349
+      },
+      {
+        "id": "configuration-v1",
+        "publicKey": "0x03d72afe6bb208d755fc834943ca1af1aaa8f8be405d7e77fa8d03f77986d51c5d",
+        "kinds": ["networks", "domains", "classification"],
+        "notBefore": 1791239949349,
+        "expiresAt": 1822776009349
+      }
+    ],
+    "revokedDigests": [],
+    "minimumSequences": {
+      "token": 1,
+      "asset": 1,
+      "descriptor": 1,
+      "networks": 1,
+      "domains": 1,
+      "classification": 1
+    }
+  },
+  "signature": "0xa3ea07977ac5039bb90a1a3d3cb595d8894cab1b32e30faa5b11434ed6355ca37458071bf3919e776187c2ce35e628fba00ad3d2ea9960ce02b2fa56bdd556a6"
+}
