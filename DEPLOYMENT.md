@@ -4,9 +4,9 @@ Prepared 2026-10-05. This guide describes operator setup, not an already complet
 
 ## Repository and cost
 
-Recommended public repository: `CipherTrade-Wallet/cipher-metadata-publisher`.
-It matches the existing local directory and covers descriptors, token metadata and
-public configuration, not just ERC-7730. Use `main` for this new repository; the
+Public repository: `Innovutech/ciphertrade-registry`.
+It covers descriptors, token metadata and public configuration, not just ERC-7730.
+The existing local directory remains `cipher-metadata-publisher`. Use `main` for this repository; the
 existing wallet app and API use `master`.
 
 Standard GitHub-hosted runner execution is free for public repositories. This is
@@ -29,13 +29,13 @@ Sources: [Actions billing](https://docs.github.com/en/billing/concepts/product-b
 3. From the existing local publisher directory, connect and push the chosen remote:
 
    ```powershell
-   git remote add origin https://github.com/CipherTrade-Wallet/cipher-metadata-publisher.git
+   git remote add origin https://github.com/Innovutech/ciphertrade-registry.git
    git push -u origin main
    ```
 
-   These are instructions, not commands already run. Adjust the URL if choosing a
-   different owner/name. The source is locally committed; no publisher remote was
-   created by the wallet merge operation.
+   These are first-time checkout instructions; skip remote creation when `origin`
+   is already configured. The remote repository was created separately from the
+   wallet merge operation. Check `SETUP_STATUS.md` for completed setup and remaining gates.
 4. Protect `main` against force pushes/deletion and unreviewed workflow changes.
    Keep workflow execution disabled until setup is complete, or expect the
    scheduled setup check to fail safely while roots/reviewers are empty.

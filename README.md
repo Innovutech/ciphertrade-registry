@@ -1,4 +1,7 @@
-# CipherTrade signed metadata publisher
+# CipherTrade Registry
+
+Public repository: [Innovutech/ciphertrade-registry](https://github.com/Innovutech/ciphertrade-registry).
+Maintains signed public configuration, asset metadata and Clear Signing descriptors.
 
 This is an independent publication project, not an API service. It has no HTTP
 signing endpoint. The wallet API has no publisher key or signing permission.
@@ -105,6 +108,9 @@ inferred from an unrelated token-cache refresh.
 
 Keep the app, API and publisher protocol copies byte-identical using the API's
 `scripts/sync-metadata-protocol.mjs`. No new native mobile dependency is needed.
+
+The local checkout may still be named `cipher-metadata-publisher`; this does not
+change the GitHub repository name or workflow behavior.
 
 ## Root administration and operational checks
 
