@@ -15,5 +15,7 @@ jobs:
       contents: write
       actions: read
     uses: ./.github/workflows/sign-publication.yml
+    secrets:
+      METADATA_SIGNING_KEYS: ${{ secrets.METADATA_SIGNING_KEYS }}
     with:
       mode: renewal

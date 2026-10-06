@@ -8,6 +8,10 @@ on:
       approved-digest:
         default: ''
         type: string
+    secrets:
+      METADATA_SIGNING_KEYS:
+        # Each signing job uses its own protected environment's value.
+        required: false
 permissions:
   contents: read
 concurrency:
