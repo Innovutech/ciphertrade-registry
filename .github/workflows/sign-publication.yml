@@ -1,0 +1,119 @@
+name: Sign metadata snapshot
+on:
+  workflow_call:
+    inputs:
+      mode:
+        required: true
+        type: string
+      approved-digest:
+        default: ''
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: metadata-publication-write
+  cancel-in-progress: false
+jobs:
+  finalize:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      digest: ${{ steps.snapshot.outputs.digest }}
+      sequence: ${{ steps.snapshot.outputs.sequence }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - run: node scripts/workflow.mjs check-setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - if: inputs.mode == 'changes'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prepared-metadata
+          path: work
+      - id: snapshot
+        run: node scripts/workflow.mjs finalize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_MODE: ${{ inputs.mode }}
+          APPROVED_DIGEST: ${{ inputs.approved-digest }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: signing-metadata
+          path: work/prepared.json
+          retention-days: 14
+          overwrite: true
+  sign:
+    needs: finalize
+    strategy:
+      fail-fast: true
+      matrix:
+        role: [tokens, descriptors, configuration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: metadata-${{ matrix.role }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: signing-metadata
+          path: work
+      - run: node scripts/workflow.mjs sign-config
+        env:
+          METADATA_ROLE: ${{ matrix.role }}
+          APPROVED_DIGEST: ${{ needs.finalize.outputs.digest }}
+      - run: node src/cli.ts sign work/sign.json work/${{ matrix.role }}.json
+        env:
+          METADATA_SIGNING_KEYS: ${{ secrets.METADATA_SIGNING_KEYS }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: signed-${{ matrix.role }}
+          path: work/${{ matrix.role }}.json
+          retention-days: 14
+          overwrite: true
+  publish:
+    needs: [finalize, sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: npm ci --ignore-scripts --no-audit
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: signing-metadata
+          path: work
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: signed-*
+          merge-multiple: true
+          path: work
+      - run: node scripts/workflow.mjs assemble
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_DIGEST: ${{ needs.finalize.outputs.digest }}
+      - run: gh release create "metadata-${SEQUENCE}" dist/publication.json dist/publication.sha256 --title "Metadata ${SEQUENCE}" --notes "Validated signed metadata publication."
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEQUENCE: ${{ needs.finalize.outputs.sequence }}

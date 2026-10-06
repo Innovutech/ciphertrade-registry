@@ -8,9 +8,9 @@ export const MAX_RECORD_BYTES = 192 * 1024;
 export const KINDS = ['token', 'asset', 'descriptor', 'networks', 'domains', 'classification'] as const;
 export type MetadataKind = typeof KINDS[number];
 export type RootKey = { id: string; publicKey: string };
-export type DelegatedKey = RootKey & { kinds: MetadataKind[]; notBefore: number; expiresAt: number };
+export type DelegatedKey = RootKey & { kinds: MetadataKind[]; notBefore: number; expiresAt: number | null };
 export type TrustPayload = {
-  schema: 1; sequence: number; issuedAt: number; expiresAt: number;
+  schema: 1 | 2; sequence: number; issuedAt: number; expiresAt: number | null;
   keys: DelegatedKey[]; revokedDigests: string[];
   minimumSequences: Record<MetadataKind, number>;
 };
@@ -104,6 +104,13 @@ function positive(value: unknown): asserts value is number {
 function checkTime(issuedAt: unknown, expiresAt: unknown, maxLifetime: number, now: number): void {
   positive(issuedAt); positive(expiresAt);
   if (expiresAt <= issuedAt || expiresAt - issuedAt > maxLifetime || issuedAt > now + 60000 || expiresAt <= now) throw new Error('Metadata outside validity period');
+}
+function checkTrustTime(payload: { schema: unknown; issuedAt: unknown; expiresAt: unknown }, now: number): void {
+  if (payload.schema !== 1 && payload.schema !== 2) throw new Error('Unsupported trust schema');
+  if (payload.schema === 2 && payload.expiresAt === null) {
+    positive(payload.issuedAt);
+    if (payload.issuedAt > now + 60000) throw new Error('Metadata outside validity period');
+  } else checkTime(payload.issuedAt, payload.expiresAt, 90 * DAY, now);
 }
 function verifySignature(type: 'trust' | 'record', payload: unknown, signature: string, publicKey: string): void {
   if (!/^0x[0-9a-fA-F]{128}$/.test(signature)) throw new Error('Invalid metadata signature');
@@ -231,16 +238,15 @@ export class MetadataVerifier {
   acceptTrust(input: unknown, now = Date.now()): SignedTrust {
     const inputDigest = metadataDigest(input);
     if (this.trust && inputDigest === metadataDigest(this.trust)) {
-      checkTime(this.trust.payload.issuedAt, this.trust.payload.expiresAt, 90 * DAY, now);
+      checkTrustTime(this.trust.payload, now);
       return this.trust;
     }
     const wrapper = object(input);
     exact(wrapper, ['rootId', 'payload', 'signature']);
     const payload = object(wrapper.payload);
     exact(payload, ['schema', 'sequence', 'issuedAt', 'expiresAt', 'keys', 'revokedDigests', 'minimumSequences']);
-    if (payload.schema !== 1) throw new Error('Unsupported trust schema');
     positive(payload.sequence);
-    checkTime(payload.issuedAt, payload.expiresAt, 90 * DAY, now);
+    checkTrustTime({ schema: payload.schema, issuedAt: payload.issuedAt, expiresAt: payload.expiresAt }, now);
     if (!Array.isArray(payload.keys) || payload.keys.length > 16 || !Array.isArray(payload.revokedDigests) || payload.revokedDigests.length > 256) throw new Error('Trust limits exceeded');
     if (payload.revokedDigests.some(hash => typeof hash !== 'string' || !HASH.test(hash))) throw new Error('Invalid revocation');
     const minimum = object(payload.minimumSequences);
@@ -256,8 +262,11 @@ export class MetadataVerifier {
       if (typeof key.publicKey !== 'string' || !/^0x(?:[0-9a-fA-F]{66}|[0-9a-fA-F]{130})$/.test(key.publicKey)) throw new Error('Invalid publishing public key');
       ethers.SigningKey.computePublicKey(key.publicKey, true);
       if (!Array.isArray(key.kinds) || !key.kinds.length || key.kinds.some(kind => !KINDS.includes(kind))) throw new Error('Invalid publishing role');
-      positive(key.notBefore); positive(key.expiresAt);
-      if (key.expiresAt <= key.notBefore) throw new Error('Invalid publishing key lifetime');
+      positive(key.notBefore);
+      if (payload.schema !== 2 || key.expiresAt !== null) {
+        positive(key.expiresAt);
+        if (key.expiresAt <= key.notBefore) throw new Error('Invalid publishing key lifetime');
+      }
     }
     const root = this.roots.find(key => key.id === wrapper.rootId);
     if (!root || typeof wrapper.signature !== 'string') throw new Error('Unknown trust root');
@@ -275,7 +284,7 @@ export class MetadataVerifier {
     if (!KINDS.includes(kind)) throw new Error('Unsupported publication kind');
     const trust = this.trust?.payload;
     if (!trust) throw new Error('No authenticated trust policy');
-    checkTime(trust.issuedAt, trust.expiresAt, 90 * DAY, now);
+    checkTrustTime(trust, now);
     const envelope = object(evidence);
     exact(envelope, ['statement', 'signature']);
     const statement = object(envelope.statement);
@@ -287,7 +296,8 @@ export class MetadataVerifier {
     const digest = metadataDigest(payload);
     if (statement.digest !== digest || trust.revokedDigests.includes(digest) || statement.sequence < trust.minimumSequences[kind]) throw new Error('Metadata digest revoked, old or mismatched');
     const key = trust.keys.find(candidate => candidate.id === statement.keyId && candidate.kinds.includes(kind));
-    if (!key || key.notBefore > Number(statement.issuedAt) || key.expiresAt < Number(statement.expiresAt) || key.expiresAt <= now) throw new Error('Publishing key not authorized');
+    if (!key || key.notBefore > Number(statement.issuedAt)
+      || (key.expiresAt !== null && (key.expiresAt < Number(statement.expiresAt) || key.expiresAt <= now))) throw new Error('Publishing key not authorized');
     const scopeKey = `${kind}:${scope}`;
     const head = this.heads.get(scopeKey);
     if (head && (statement.sequence < head.sequence || (statement.sequence === head.sequence && head.digest !== digest))) throw new Error('Record rollback or equivocation');

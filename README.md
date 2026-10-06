@@ -21,6 +21,8 @@ npm test
 
 ## Publishing
 
-The publication workflow prepares a versioned snapshot, requires reviewer approval,
-and releases signed artifacts. Consumers verify them using trusted public keys.
+Catalog changes require reviewer approval. A separate scheduled workflow renews
+the last approved catalog without importing upstream changes. Both use the same
+serialized signer. Consumers verify short-lived records using trusted public keys;
+root-authorized publishing keys can have non-expiring authorization.
 Private keys belong in protected signing environments, never in this repository.

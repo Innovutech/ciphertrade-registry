@@ -11,7 +11,7 @@ export function assertPublishingRoles(trust: TrustPayload): void {
     const publicKey = ethers.SigningKey.computePublicKey(key.publicKey, true);
     if (material.has(publicKey)) throw new Error('Publishing roles must not reuse key material');
     material.add(publicKey);
-    if (key.notBefore <= Date.now() && key.expiresAt > Date.now()) found.add(role);
+    if (key.notBefore <= Date.now() && (key.expiresAt === null || key.expiresAt > Date.now())) found.add(role);
   }
   if (found.size !== roles.length) throw new Error('Each publication role needs a current dedicated key');
 }
@@ -24,4 +24,10 @@ export function assertReviewerEnvironment(input: unknown, allowedUserIds: readon
     throw new Error('Publication environment must require an allowlisted reviewer');
   }
   if (environment.deployment_branch_policy?.protected_branches !== true) throw new Error('Publication environment must restrict deployment to protected branches');
+}
+
+export function assertSigningEnvironment(input: unknown): void {
+  const environment = input as { protection_rules?: { type?: string }[]; deployment_branch_policy?: { protected_branches?: boolean } };
+  if (environment?.deployment_branch_policy?.protected_branches !== true) throw new Error('Signing environment must restrict deployment to protected branches');
+  if (environment.protection_rules?.some(rule => rule.type === 'required_reviewers' || rule.type === 'wait_timer')) throw new Error('Signing jobs must not block approved-catalog renewal; review changes in metadata-review');
 }

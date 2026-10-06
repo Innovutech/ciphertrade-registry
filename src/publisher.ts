@@ -11,6 +11,7 @@ export type Candidate = { kind: MetadataKind; scope: string; payload: unknown };
 export type PreparedPublication = {
   schema: 1; sequence: number; issuedAt: number; expiresAt: number;
   sources: { name: string; revision: string }[]; records: Candidate[];
+  baseDigest?: string | null;
 };
 export type ImportOptions = {
   curatedDirectory: string; trustWalletDirectory?: string; registryDirectory?: string;
@@ -206,6 +207,7 @@ export function preparedDigest(prepared: PreparedPublication): string {
   return ethers.sha256(ethers.toUtf8Bytes(JSON.stringify({
     schema: prepared.schema, sequence: prepared.sequence, issuedAt: prepared.issuedAt, expiresAt: prepared.expiresAt,
     sources: prepared.sources, records: prepared.records.map(row => ({ kind: row.kind, scope: row.scope, digest: metadataDigest(row.payload) })),
+    ...(prepared.baseDigest !== undefined ? { baseDigest: prepared.baseDigest } : {}),
   })));
 }
 

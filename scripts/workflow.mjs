@@ -1,11 +1,13 @@
 import fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { ethers } from 'ethers';
+import { latestPublication } from './latest-publication.mjs';
 
 const mode = process.argv[2];
 const json = async file => JSON.parse(await fs.readFile(file, 'utf8'));
 await fs.mkdir('work', { recursive: true });
 if (mode === 'prepare') {
+  if (process.env.GITHUB_RUN_ATTEMPT && process.env.GITHUB_RUN_ATTEMPT !== '1') throw new Error('Start a new change-review run instead of re-importing sources into an existing approval');
   const revisions = Object.fromEntries([
     ['curated', '.'], ['trustWallet', 'sources/trustwallet'], ['registry', 'sources/registry'],
   ].map(([name, dir]) => [name, execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()]));
@@ -20,27 +22,30 @@ if (mode === 'prepare') {
 } else if (mode === 'digest') {
   const { preparedDigest } = await import('../src/publisher.ts');
   const prepared = await json('work/prepared.json');
-  const digest = preparedDigest(prepared);
   const { publicationReport } = await import('../src/publicationReport.ts');
-  const tags = JSON.parse(execFileSync('gh', ['release', 'list', '--limit', '100', '--json', 'tagName,isDraft'], { encoding: 'utf8' }));
-  const latest = tags.find(tag => !tag.isDraft && /^metadata-[0-9]+$/.test(tag.tagName));
-  let previous;
-  if (latest) {
-    await fs.mkdir('work/previous', { recursive: true });
-    execFileSync('gh', ['release', 'download', latest.tagName, '--pattern', 'publication.json', '--dir', 'work/previous']);
-    previous = await json('work/previous/publication.json');
-    // Historical comparison only, not runtime trust: verify at each signed issue time.
-    const { MetadataVerifier } = await import('../src/protocol.ts');
-    const verifier = new MetadataVerifier((await json('trust/roots.json')).keys);
-    verifier.acceptTrust(previous.trust, previous.trust.payload.issuedAt);
-    previous.records = previous.records.map(record => verifier.verify(record.payloadRef ? previous.documents?.[record.payloadRef] : record.payload,
-      { statement: record.statement, signature: record.signature }, record.statement.kind, record.statement.scope, record.statement.issuedAt));
-  }
-  const report = publicationReport(prepared, previous);
+  const previous = await latestPublication((await json('trust/roots.json')).keys);
+  prepared.baseDigest = previous?.contentDigest ?? null;
+  await fs.writeFile('work/prepared.json', JSON.stringify(prepared));
+  const digest = preparedDigest(prepared);
+  const report = publicationReport(prepared, previous ?? undefined);
+  const changed = !previous || report.added.length + report.changed.length + report.removed.length > 0;
   await fs.writeFile('work/review.json', JSON.stringify(report, null, 2));
-  await fs.appendFile(process.env.GITHUB_OUTPUT, `digest=${digest}\n`);
+  await fs.appendFile(process.env.GITHUB_OUTPUT, `digest=${digest}\nchanged=${changed}\n`);
   await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,
     `## Metadata publication\n\nApproved snapshot digest: \`${digest}\`\n\nRecords: ${prepared.records.length}. Added: ${report.added.length}; changed: ${report.changed.length}; removed: ${report.removed.length}.\n\nReview prepared-metadata/review.json and the complete prepared snapshot before approval.\n\nSources:\n${prepared.sources.map(source => `- ${source.name}: \`${source.revision}\``).join('\n')}\n`);
+} else if (mode === 'finalize') {
+  const { finalizePublication } = await import('../src/publicationLifecycle.ts');
+  const { preparedDigest } = await import('../src/publisher.ts');
+  const roots = (await json('trust/roots.json')).keys;
+  const previous = await latestPublication(roots);
+  const publicationMode = process.env.PUBLICATION_MODE;
+  if (!['changes', 'renewal'].includes(publicationMode)) throw new Error('Invalid publication mode');
+  const prepared = finalizePublication({ mode: publicationMode, previous, roots, trust: await json('trust/policy.json'),
+    ...(publicationMode === 'changes' ? { reviewed: await json('work/prepared.json'), approvedDigest: process.env.APPROVED_DIGEST } : {}) });
+  await fs.writeFile('work/prepared.json', JSON.stringify(prepared));
+  const digest = preparedDigest(prepared);
+  await fs.appendFile(process.env.GITHUB_OUTPUT, `digest=${digest}\nsequence=${prepared.sequence}\n`);
+  await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `## ${publicationMode === 'renewal' ? 'Approved catalog renewal' : 'Approved changes'}\n\nSnapshot: \`${digest}\`\n\nRecords: ${prepared.records.length}. Publication version: ${prepared.sequence}.\n`);
 } else if (mode === 'sign-config') {
   const roles = { tokens: ['token', 'asset'], descriptors: ['descriptor'], configuration: ['networks', 'domains', 'classification'] };
   const kinds = roles[process.env.METADATA_ROLE];
@@ -53,6 +58,8 @@ if (mode === 'prepare') {
   const prepared = await json('work/prepared.json');
   if (preparedDigest(prepared) !== process.env.APPROVED_DIGEST) throw new Error('Prepared artifact changed');
   const roots = await json('trust/roots.json');
+  const latest = await latestPublication(roots.keys);
+  if ((latest?.contentDigest ?? null) !== prepared.baseDigest || (latest && latest.sequence >= prepared.sequence)) throw new Error('Publication base changed while signing; start a new run');
   const verifier = new MetadataVerifier(roots.keys);
   const parts = await Promise.all(['tokens', 'descriptors', 'configuration'].map(role => json(`work/${role}.json`)));
   const trust = verifier.acceptTrust(parts[0].trust);
@@ -60,6 +67,7 @@ if (mode === 'prepare') {
   for (const part of parts) {
     if (metadataDigest(part.trust) !== metadataDigest(trust)) throw new Error('Signing roles used different trust policies');
     for (const record of part.records) {
+      if (record.statement.sequence !== prepared.sequence || record.statement.issuedAt !== prepared.issuedAt || record.statement.expiresAt !== prepared.expiresAt) throw new Error('Signing role used a different publication version or validity period');
       verifier.verify(record.payload, { statement: record.statement, signature: record.signature }, record.statement.kind, record.statement.scope);
       const id = `${record.statement.kind}:${record.statement.scope}`;
       if (records.has(id)) throw new Error('Duplicate signed scope');
@@ -81,20 +89,22 @@ if (mode === 'prepare') {
   const { MetadataVerifier } = await import('../src/protocol.ts');
   if (!roots.keys?.length) throw new Error('Production trust roots must be provisioned before publication');
   const trust = new MetadataVerifier(roots.keys).acceptTrust(await json('trust/policy.json'));
-  const { assertPublishingRoles, assertReviewerEnvironment } = await import('../src/publishingPolicy.ts');
+  const { assertPublishingRoles, assertReviewerEnvironment, assertSigningEnvironment } = await import('../src/publishingPolicy.ts');
   assertPublishingRoles(trust.payload);
   const reviewers = await json('trust/reviewers.json');
   if (!Array.isArray(reviewers.userIds) || !reviewers.userIds.length || reviewers.userIds.some(id => !Number.isSafeInteger(id) || id <= 0)) throw new Error('Configure stable GitHub reviewer account IDs');
   if (process.env.GITHUB_ACTIONS === 'true') {
     const repository = process.env.GITHUB_REPOSITORY;
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? '')) throw new Error('Invalid publisher repository');
-    for (const role of ['tokens', 'descriptors', 'configuration']) {
+    for (const role of ['review', 'tokens', 'descriptors', 'configuration']) {
       const response = await fetch(`https://api.github.com/repos/${repository}/environments/metadata-${role}`, {
         headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${process.env.GH_TOKEN}`, 'X-GitHub-Api-Version': '2022-11-28' },
         signal: AbortSignal.timeout(15000), redirect: 'error',
       });
       if (!response.ok) throw new Error(`Cannot verify metadata-${role} approval protection`);
-      assertReviewerEnvironment(await response.json(), reviewers.userIds);
+      const environment = await response.json();
+      if (role === 'review') assertReviewerEnvironment(environment, reviewers.userIds);
+      else assertSigningEnvironment(environment);
     }
   }
 } else throw new Error('Unknown workflow command');

@@ -1,0 +1,19 @@
+name: Renew approved metadata
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 1,4'
+permissions:
+  contents: read
+concurrency:
+  group: metadata-renewal-schedule
+  cancel-in-progress: false
+jobs:
+  renew:
+    if: github.ref == 'refs/heads/main' && vars.METADATA_AUTORENEW_ENABLED == 'true'
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/sign-publication.yml
+    with:
+      mode: renewal

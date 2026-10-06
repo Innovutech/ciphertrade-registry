@@ -21,5 +21,7 @@ jobs:
           node-version: '24.16.0'
       - run: npm ci --ignore-scripts --no-audit
       - run: npm test
+      - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes=
       - run: node --check scripts/workflow.mjs
+      - run: node --check scripts/latest-publication.mjs
       - run: node --check scripts/trust-policy.mjs
