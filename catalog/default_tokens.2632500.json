@@ -21,6 +21,7 @@
     "tokenAddress": "0x7637c7838ec4ec6b85080f28a678f8e234bb83d1",
     "private": false,
     "tokenSymbol": "gCOTI",
+    "logoUrl": "https://coti.io/icons/gcoti.png",
     "cgCoinId": "coti-governance-token",
     "decimals": 18,
     "verification": "official"
