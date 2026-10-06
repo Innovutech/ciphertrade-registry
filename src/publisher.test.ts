@@ -107,7 +107,7 @@ test('scoped key rotation invalidates records signed with removed keys', () => {
 test('malformed and unsupported publication formats cannot gain trust', () => {
   const verifier = new MetadataVerifier(roots);
   for (const payload of [
-    { ...trustPayload, schema: 2 }, { ...trustPayload, issuedAt: String(now) },
+    { ...trustPayload, schema: 3 }, { ...trustPayload, issuedAt: String(now) },
     { ...trustPayload, keys: [...trustPayload.keys, ...trustPayload.keys] },
   ]) {
     const signature = root.sign(signatureDigest('trust', payload)).compactSerialized;

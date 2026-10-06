@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ethers } from 'ethers';
-import { assertPublishingRoles, assertReviewerEnvironment } from './publishingPolicy.ts';
+import { assertPublishingRoles, assertReviewerEnvironment, assertSigningEnvironment } from './publishingPolicy.ts';
 import type { TrustPayload } from './protocol.ts';
 
 test('production keys cannot cross roles or merely rename the same key material', () => {
@@ -23,4 +23,11 @@ test('publication refuses absent, unrestricted or non-allowlisted approval gates
   assert.throws(() => assertReviewerEnvironment(environment, [456]));
   assert.throws(() => assertReviewerEnvironment({ ...environment, deployment_branch_policy: null }, [123]));
   assert.throws(() => assertReviewerEnvironment({ ...environment, protection_rules: [{ type: 'required_reviewers', reviewers: [{ type: 'Team', reviewer: { id: 123 } }] }] }, [123]));
+});
+
+test('automated signing stays protected-branch-only and cannot silently keep renewal approval gates', () => {
+  assert.doesNotThrow(() => assertSigningEnvironment({ deployment_branch_policy: { protected_branches: true }, protection_rules: [] }));
+  assert.throws(() => assertSigningEnvironment({}));
+  assert.throws(() => assertSigningEnvironment({ deployment_branch_policy: { protected_branches: false } }));
+  assert.throws(() => assertSigningEnvironment({ deployment_branch_policy: { protected_branches: true }, protection_rules: [{ type: 'required_reviewers' }] }));
 });
