@@ -135,3 +135,61 @@ test('Trust Wallet importer covers non-curated assets without awarding verificat
     assert.equal(merged.filter(row => row.kind === 'classification').length, 1);
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
+
+test('curated logo URLs are signed without fetching mutable image content', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-logo-test-'));
+  const originalFetch = globalThis.fetch;
+  let downloads = 0;
+  try {
+    globalThis.fetch = async () => { downloads++; throw new Error('Image fetching is not required'); };
+    const filename = path.join(directory, 'tokens.1.json');
+    const row = { tokenAddress: payload.address, tokenSymbol: 'EXAMPLE', decimals: 6,
+      logoUrl: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' };
+    await fs.writeFile(filename, JSON.stringify([row]));
+    const options = { curatedDirectory: directory, chains: { '1': {} }, revisions: { curated: 'a'.repeat(40) } };
+    const records = await importTokenSources(options);
+    const imported = records[0]!.payload as Record<string, unknown>;
+    assert.equal(imported.logoUrl, row.logoUrl);
+    assert.equal(Object.hasOwn(imported, 'logoSha256'), false);
+    assert.equal(downloads, 0);
+    const p = { ...prepared(), records };
+    const signedRow = signPublication(p, preparedDigest(p), trust(), roots, { 'test-tokens': signer.privateKey }).records[0]!;
+    const verifier = new MetadataVerifier(roots);
+    verifier.acceptTrust(trust());
+    verify(verifier, signedRow);
+    assert.throws(() => verify(verifier, { ...signedRow, payload: { ...imported, logoUrl: 'https://attacker.example/logo.png' } }), /digest/);
+    for (const logoUrl of ['http://example.com/logo.png', 'https://user:password@example.com/logo.png']) {
+      await fs.writeFile(filename, JSON.stringify([{ ...row, logoUrl }]));
+      await assert.rejects(importTokenSources(options), /logo URL/);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    assert.equal(path.dirname(directory), os.tmpdir());
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('Trust Wallet imports token and logo-only records with revision-pinned URLs and no image hashes', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-logo-test-'));
+  try {
+    const asset = path.join(directory, 'tw/blockchains/ethereum/assets', payload.address);
+    await fs.mkdir(asset, { recursive: true });
+    await fs.mkdir(path.join(directory, 'curated'));
+    await fs.writeFile(path.join(asset, 'logo.png'), Buffer.from('89504e470d0a1a0a', 'hex'));
+    const options = { curatedDirectory: path.join(directory, 'curated'), trustWalletDirectory: path.join(directory, 'tw'),
+      chains: { '1': { twChainId: 'ethereum' } }, revisions: { curated: 'b'.repeat(40), trustWallet: 'a'.repeat(40) } };
+    const onlyLogo = await importTokenSources(options);
+    assert.equal(onlyLogo[0]!.kind, 'asset');
+    const logo = onlyLogo[0]!.payload as Record<string, unknown>;
+    assert.equal(logo.logoUrl, `https://raw.githubusercontent.com/trustwallet/assets/${'a'.repeat(40)}/blockchains/ethereum/assets/${payload.address}/logo.png`);
+    assert.equal(Object.hasOwn(logo, 'logoSha256'), false);
+    await fs.writeFile(path.join(asset, 'info.json'), JSON.stringify({ id: payload.address, symbol: 'EXAMPLE', decimals: 6, status: 'active' }));
+    const token = await importTokenSources(options);
+    assert.equal(token[0]!.kind, 'token');
+    assert.equal((token[0]!.payload as Record<string, unknown>).logoUrl, logo.logoUrl);
+    assert.equal(Object.hasOwn(token[0]!.payload as object, 'logoSha256'), false);
+  } finally {
+    assert.equal(path.dirname(directory), os.tmpdir());
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});

@@ -24,7 +24,7 @@ export type SignedRecord<T = unknown> = Evidence & { payload: T };
 export type Checkpoint = { sequence: number; digest: string };
 export type TokenIdentity = { chainId: number; address: string; symbol: string; decimals: number };
 export type TokenPublication = TokenIdentity & {
-  name?: string; logoUrl?: string; logoSha256?: string;
+  name?: string; logoUrl?: string;
   source: string; revision: string;
 };
 
@@ -157,8 +157,7 @@ function validatePayload(kind: MetadataKind, scope: string, payload: unknown): v
       const url = new URL(row.logoUrl);
       if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Invalid logo URL');
     }
-    if (row.logoSha256 !== undefined && (typeof row.logoSha256 !== 'string' || !HASH.test(row.logoSha256) || !row.logoUrl)) throw new Error('Invalid logo digest');
-    if (kind === 'asset' && !row.logoSha256) throw new Error('Asset requires a content digest');
+    if (kind === 'asset' && !row.logoUrl) throw new Error('Asset requires a logo URL');
   }
   if (kind === 'domains') {
     if (scope !== 'domains' || !Array.isArray(row.origins) || row.origins.length > 64) throw new Error('Invalid domains catalog');
