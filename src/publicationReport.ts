@@ -4,8 +4,8 @@ import type { PreparedPublication } from './publisher.ts';
 export function publicationReport(prepared: PreparedPublication, previous?: { records: SignedRecord[] }) {
   const digest = (kind: string, payload: unknown) => {
     if (kind !== 'token' && kind !== 'asset') return metadataDigest(payload);
-    const { revision: _revision, logoUrl, ...rest } = payload as Record<string, unknown>;
-    return metadataDigest({ ...rest, ...(logoUrl && !rest.logoSha256 ? { logoUrl } : {}) });
+    const { revision: _revision, ...rest } = payload as Record<string, unknown>;
+    return metadataDigest(rest);
   };
   const before = new Map((previous?.records ?? []).map(row => [`${row.statement.kind}:${row.statement.scope}`, digest(row.statement.kind, row.payload)]));
   const after = new Map(prepared.records.map(row => [`${row.kind}:${row.scope}`, digest(row.kind, row.payload)]));

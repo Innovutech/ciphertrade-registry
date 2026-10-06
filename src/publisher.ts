@@ -29,43 +29,21 @@ async function readJson(filename: string): Promise<unknown> {
   return JSON.parse(await fs.readFile(filename, 'utf8'));
 }
 
-const logoHosts = new Set(['raw.githubusercontent.com', 'assets-cdn.trustwallet.com', 'assets.coingecko.com',
-  'coin-images.coingecko.com', 'ciphertrade.org', 'coti.io', 'coti.carbondefi.xyz', 's2.coinmarketcap.com']);
-const logoDigests = new Map<string, Promise<string | null>>();
-async function remoteLogoDigest(value: string): Promise<string | null> {
-  const prior = logoDigests.get(value);
-  if (prior) return prior;
-  const lookup = (async () => {
-    try {
-      const url = new URL(value);
-      if (url.protocol !== 'https:' || url.username || url.password || !logoHosts.has(url.hostname)) return null;
-      const response = await fetch(url, { signal: AbortSignal.timeout(8000), redirect: 'error' });
-      if (!response.ok || Number(response.headers.get('content-length')) > 256 * 1024) return null;
-      const reader = response.body?.getReader();
-      if (!reader) return null;
-      const chunks: Uint8Array[] = [];
-      let length = 0;
-      for (;;) {
-        const part = await reader.read();
-        if (part.done) break;
-        length += part.value.length;
-        if (length > 256 * 1024) { await reader.cancel(); return null; }
-        chunks.push(part.value);
-      }
-      return ethers.sha256(ethers.concat(chunks));
-    } catch { return null; }
-  })();
-  logoDigests.set(value, lookup);
-  return lookup;
+function validatedLogoUrl(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (!safeText(value, 2048)) throw new Error('Invalid token logo URL');
+  const url = new URL(value);
+  if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Invalid token logo URL');
+  return value;
 }
-async function logo(directory: string, relative: string, baseUrl: string): Promise<{ logoUrl: string; logoSha256: string } | {}> {
+async function logo(directory: string, relative: string, baseUrl: string): Promise<{ logoUrl?: string }> {
   try {
     const filename = path.join(directory, relative);
     const stat = await fs.lstat(filename);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 256 * 1024) return {};
     const bytes = await fs.readFile(filename);
     if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') return {};
-    return { logoUrl: `${baseUrl}/${relative.split(path.sep).map(encodeURIComponent).join('/')}`, logoSha256: ethers.sha256(bytes) };
+    return { logoUrl: `${baseUrl}/${relative.split(path.sep).map(encodeURIComponent).join('/')}` };
   } catch { return {}; }
 }
 
@@ -93,7 +71,7 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
         const scope = tokenScope(Number(id), asset.name);
         const relative = path.join('blockchains', chain.twChainId, 'assets', asset.name, 'logo.png');
         const image = await logo(options.trustWalletDirectory, relative, `https://raw.githubusercontent.com/trustwallet/assets/${options.revisions.trustWallet}`);
-        if ('logoSha256' in image) assetsOnly.set(scope, { kind: 'asset', scope, payload: {
+        if (image.logoUrl) assetsOnly.set(scope, { kind: 'asset', scope, payload: {
           chainId: Number(id), address: asset.name.toLowerCase(), ...image, source: 'trustwallet', revision: options.revisions.trustWallet,
         } });
         try {
@@ -128,21 +106,20 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
         const external = tokens.get(scope);
         const symbol = row.tokenSymbol ?? external?.symbol;
         const decimals = row.decimals ?? external?.decimals;
-        const digest = typeof row.logoUrl === 'string' ? await remoteLogoDigest(row.logoUrl) : null;
+        const selectedLogoUrl = validatedLogoUrl(row.logoUrl) ?? external?.logoUrl;
         // Incomplete curated records remain usable in the API, but cannot attest decimals.
         if (symbol != null && decimals != null) {
           const identity = tokenIdentity({ chainId: Number(id), address, symbol, decimals });
           tokens.set(scope, {
             ...identity,
             ...(safeText(row.name ?? row.tokenName, 128) ? { name: String(row.name ?? row.tokenName) } : external?.name ? { name: external.name } : {}),
-            ...(typeof row.logoUrl === 'string' ? { logoUrl: row.logoUrl, ...(digest ? { logoSha256: digest } : {}) }
-              : external?.logoUrl ? { logoUrl: external.logoUrl, ...(external.logoSha256 ? { logoSha256: external.logoSha256 } : {}) } : {}),
+            ...(selectedLogoUrl ? { logoUrl: selectedLogoUrl } : {}),
             source: 'ciphertrade', revision: options.revisions.curated,
           });
           assetsOnly.delete(scope);
-        } else if (digest && typeof row.logoUrl === 'string') {
+        } else if (selectedLogoUrl) {
           assetsOnly.set(scope, { kind: 'asset', scope, payload: { chainId: Number(id), address,
-            logoUrl: row.logoUrl, logoSha256: digest, source: 'ciphertrade', revision: options.revisions.curated } });
+            logoUrl: selectedLogoUrl, source: 'ciphertrade', revision: options.revisions.curated } });
         }
         if (prefix !== 'tokens') {
           const verification = row.verification ?? (prefix === 'default_tokens' ? 'official' : 'community');
