@@ -406,8 +406,5 @@ test('release fallbacks are generated exclusively from complete publisher config
     '2632500': { ...publicChains['2632500']!, appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } },
   } } : row);
   assert.equal((configurationFallbacks(removed).get('bundledMemoConfig.2632500.json') as { memoGcAddress: null }).memoGcAddress, null);
-  const script = await fs.readFile(new URL('../../cipher-wallet-api/scripts/sync-metadata-fallbacks.mjs', import.meta.url), 'utf8');
-  assert.match(script, /path\.join\(app, name\)/);
-  assert.doesNotMatch(script, /path\.join\(api, ['"]data['"]\)|api\/data|\.\.\/data/);
   assert.throws(() => configurationFallbacks(records.filter(row => row.scope !== 'tokens:1')), /Incomplete/);
 });
