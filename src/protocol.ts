@@ -477,6 +477,7 @@ export class MetadataVerifier {
   private readonly memo = new Map<string, SignedRecord>();
   private readonly payloads = new Map<string, unknown>();
   private readonly heads = new Map<string, Checkpoint>();
+  private readonly authenticatedRecords = new WeakMap<SignedRecord, SignedTrust>();
 
   constructor(roots: readonly RootKey[], checkpoint: Checkpoint | null = null) {
     this.roots = freezeMetadata(JSON.parse(canonicalMetadata(roots)) as RootKey[]);
@@ -543,16 +544,11 @@ export class MetadataVerifier {
     exact(statement, ['schema', 'kind', 'scope', 'keyId', 'sequence', 'issuedAt', 'expiresAt', 'digest']);
     if (statement.schema !== 1 || statement.kind !== kind || statement.scope !== scope) throw new Error('Metadata scope mismatch');
     text(statement.scope, 256); text(statement.keyId, 64); positive(statement.sequence);
-    checkTime(statement.issuedAt, statement.expiresAt, MAX_LIFETIME[kind], now);
+    const key = this.assertRecordAuthority(statement as Statement, kind, scope, now);
     validateMetadataPayload(kind, scope, payload);
     const digest = metadataDigest(payload);
-    if (statement.digest !== digest || trust.revokedDigests.includes(digest) || statement.sequence < trust.minimumSequences[kind]) throw new Error('Metadata digest revoked, old or mismatched');
-    const key = trust.keys.find(candidate => candidate.id === statement.keyId && candidate.kinds.includes(kind));
-    if (!key || key.notBefore > Number(statement.issuedAt)
-      || (key.expiresAt !== null && (key.expiresAt < Number(statement.expiresAt) || key.expiresAt <= now))) throw new Error('Publishing key not authorized');
+    if (statement.digest !== digest) throw new Error('Metadata digest revoked, old or mismatched');
     const scopeKey = `${kind}:${scope}`;
-    const head = this.heads.get(scopeKey);
-    if (head && (statement.sequence < head.sequence || (statement.sequence === head.sequence && head.digest !== digest))) throw new Error('Record rollback or equivocation');
     const memoKey = `${metadataDigest(evidence.statement)}:${evidence.signature}`;
     const cached = this.memo.get(memoKey);
     if (cached) return cached as SignedRecord<T>;
@@ -566,11 +562,37 @@ export class MetadataVerifier {
     }
     const accepted = Object.freeze({ payload: frozenPayload as T,
       statement: freezeMetadata(JSON.parse(canonicalMetadata(statement)) as Statement), signature: envelope.signature });
+    this.authenticatedRecords.set(accepted, this.trust!);
     this.memo.set(memoKey, accepted);
     this.heads.delete(scopeKey);
     this.heads.set(scopeKey, { sequence: statement.sequence, digest });
     while (this.memo.size > 128) this.memo.delete(this.memo.keys().next().value!);
     while (this.heads.size > 4096) this.heads.delete(this.heads.keys().next().value!);
     return accepted;
+  }
+
+  verifyRecord<T>(record: SignedRecord<T>, kind: MetadataKind, scope: string, now = Date.now()): SignedRecord<T> {
+    // Only this verifier's immutable, authenticated objects can skip JSON/schema/signature work.
+    if (this.authenticatedRecords.get(record) === this.trust && this.trust !== null) {
+      this.assertRecordAuthority(record.statement, kind, scope, now);
+      return record;
+    }
+    return this.verify(record.payload, { statement: record.statement, signature: record.signature }, kind, scope, now);
+  }
+
+  private assertRecordAuthority(statement: Statement, kind: MetadataKind, scope: string, now: number): DelegatedKey {
+    if (!KINDS.includes(kind)) throw new Error('Unsupported publication kind');
+    const trust = this.trust?.payload;
+    if (!trust) throw new Error('No authenticated trust policy');
+    checkTrustTime(trust, now);
+    if (statement.schema !== 1 || statement.kind !== kind || statement.scope !== scope) throw new Error('Metadata scope mismatch');
+    checkTime(statement.issuedAt, statement.expiresAt, MAX_LIFETIME[kind], now);
+    if (trust.revokedDigests.includes(statement.digest) || statement.sequence < trust.minimumSequences[kind]) throw new Error('Metadata digest revoked, old or mismatched');
+    const key = trust.keys.find(candidate => candidate.id === statement.keyId && candidate.kinds.includes(kind));
+    if (!key || key.notBefore > statement.issuedAt
+      || (key.expiresAt !== null && (key.expiresAt < statement.expiresAt || key.expiresAt <= now))) throw new Error('Publishing key not authorized');
+    const head = this.heads.get(`${kind}:${scope}`);
+    if (head && (statement.sequence < head.sequence || (statement.sequence === head.sequence && head.digest !== statement.digest))) throw new Error('Record rollback or equivocation');
+    return key;
   }
 }
