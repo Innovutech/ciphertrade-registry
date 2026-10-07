@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "chainId": 2632500,
+  "families": [
+    {
+      "familyId": "cipherdex-public-lp-v1",
+      "protocol": "cipherdex",
+      "assetKind": "liquidity-position",
+      "privacyMode": "public",
+      "detector": "cipherdex-lp-v1",
+      "parentFactoryAddress": "0x9c70596514De7C8DaF108f558E2d4a97E0C44E49",
+      "issuedTokenFactoryAddress": "0xf2AA9D05E5FF15525361450C53bd952F37200090",
+      "issuerMode": "parent",
+      "protocolVersion": 1,
+      "privacyModeCode": 0,
+      "presentation": {
+        "groupLabel": "Liquidity positions",
+        "badgeLabel": "Liquidity position"
+      },
+      "actions": {
+        "swap": "blocked",
+        "crossChain": "blocked",
+        "privacyPortal": "blocked",
+        "chatTip": "blocked",
+        "transfer": "confirm"
+      }
+    },
+    {
+      "familyId": "cipherdex-private-lp-v1",
+      "protocol": "cipherdex",
+      "assetKind": "liquidity-position",
+      "privacyMode": "private",
+      "detector": "cipherdex-lp-v1",
+      "parentFactoryAddress": "0xAF3Fb0A4f60C1b057C0c9cD8e563Df5F5b93ac03",
+      "issuedTokenFactoryAddress": "0x8FbA3756f791a9f31EcfeAb5bD1394fc34C4DD89",
+      "issuerMode": "factory",
+      "protocolVersion": 1,
+      "privacyModeCode": 1,
+      "presentation": {
+        "groupLabel": "Liquidity positions",
+        "badgeLabel": "Private liquidity position"
+      },
+      "actions": {
+        "swap": "blocked",
+        "crossChain": "blocked",
+        "privacyPortal": "blocked",
+        "chatTip": "blocked",
+        "transfer": "confirm"
+      }
+    },
+    {
+      "familyId": "cipherdex-protocol-public-lp",
+      "protocol": "cipherdex",
+      "assetKind": "liquidity-position",
+      "privacyMode": "public",
+      "detector": "cipherdex-protocol-lp-v1",
+      "parentFactoryAddress": "0x1909751000de0d15f81394b47eca1931184d51e0",
+      "issuedTokenFactoryAddress": "0xf1f60764b0e9fd084c415841eaa53664dc167361",
+      "issuerMode": "parent",
+      "protocolVersion": 1,
+      "privacyModeCode": 0,
+      "presentation": {
+        "groupLabel": "Liquidity positions",
+        "badgeLabel": "Liquidity position"
+      },
+      "actions": {
+        "swap": "blocked",
+        "crossChain": "blocked",
+        "privacyPortal": "blocked",
+        "chatTip": "blocked",
+        "transfer": "confirm"
+      }
+    },
+    {
+      "familyId": "cipherdex-protocol-private-lp",
+      "protocol": "cipherdex",
+      "assetKind": "liquidity-position",
+      "privacyMode": "private",
+      "detector": "cipherdex-protocol-lp-v1",
+      "parentFactoryAddress": "0x0e9d2db1086b5325b60eb49a250477937438c81a",
+      "issuedTokenFactoryAddress": "0x1e5844cf7ef94ad2435f7475551d7bb18a4521f1",
+      "issuerMode": "parent",
+      "protocolVersion": 1,
+      "privacyModeCode": 1,
+      "presentation": {
+        "groupLabel": "Liquidity positions",
+        "badgeLabel": "Private liquidity position"
+      },
+      "actions": {
+        "swap": "blocked",
+        "crossChain": "blocked",
+        "privacyPortal": "blocked",
+        "chatTip": "blocked",
+        "transfer": "confirm"
+      }
+    },
+    {
+      "familyId": "cipherdex-protocol-observable-lp",
+      "protocol": "cipherdex",
+      "assetKind": "liquidity-position",
+      "privacyMode": "private",
+      "detector": "cipherdex-protocol-lp-v1",
+      "parentFactoryAddress": "0x7cc917e6c84be1ab8ce831a18a0198f4e333a537",
+      "issuedTokenFactoryAddress": "0x1e5844cf7ef94ad2435f7475551d7bb18a4521f1",
+      "issuerMode": "parent",
+      "protocolVersion": 1,
+      "privacyModeCode": 2,
+      "presentation": {
+        "groupLabel": "Liquidity positions",
+        "badgeLabel": "Private liquidity position"
+      },
+      "actions": {
+        "swap": "blocked",
+        "crossChain": "blocked",
+        "privacyPortal": "blocked",
+        "chatTip": "blocked",
+        "transfer": "confirm"
+      }
+    }
+  ]
+}

@@ -2,9 +2,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ethers } from 'ethers';
 import { resolveDescriptorIncludes } from './descriptorIncludes.ts';
+import { readCuratedTokenCatalog, readClassificationRemovals } from './configuration.ts';
 import {
   canonicalMetadata, metadataDigest, signatureDigest, tokenIdentity, tokenScope, descriptorScope,
-  MetadataVerifier, encodeMetadataHeader, MAX_HEADER_BYTES, type MetadataKind, type SignedRecord, type SignedTrust, type RootKey, type TokenPublication,
+  validateConfigurationPublication, MetadataVerifier, encodeMetadataHeader, MAX_HEADER_BYTES, type MetadataKind, type SignedRecord, type SignedTrust, type RootKey, type TokenPublication,
 } from './protocol.ts';
 
 export type Candidate = { kind: MetadataKind; scope: string; payload: unknown };
@@ -15,7 +16,7 @@ export type PreparedPublication = {
 };
 export type ImportOptions = {
   curatedDirectory: string; trustWalletDirectory?: string; registryDirectory?: string;
-  chains: Record<string, { twChainId?: string }>;
+  chains: Record<string, { twChainId?: string | null }>;
   networks?: unknown; domains?: unknown;
   revisions: { curated: string; trustWallet?: string; registry?: string };
 };
@@ -94,20 +95,16 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
   }
   const classifications = new Map<string, Candidate>();
   for (const id of Object.keys(options.chains)) {
-    for (const prefix of ['tokens', 'verified_tokens', 'default_tokens']) {
-      const rows = await readJson(path.join(options.curatedDirectory, `${prefix}.${id}.json`)).catch(error => {
-        if (error?.code === 'ENOENT') return [];
-        throw error;
-      }) as Record<string, unknown>[];
-      if (!Array.isArray(rows)) throw new Error('Invalid curated token list');
+    const catalog = await readCuratedTokenCatalog(options.curatedDirectory, Number(id));
+    for (const [prefix, rows] of [['tokens', catalog.tokens], ['verified_tokens', catalog.verified], ['default_tokens', catalog.defaults]] as const) {
       for (const row of rows) {
         const address = typeof row.tokenAddress === 'string' ? row.tokenAddress.toLowerCase() : '';
         const scope = tokenScope(Number(id), address);
         const external = tokens.get(scope);
         const symbol = row.tokenSymbol ?? external?.symbol;
-        const decimals = row.decimals ?? external?.decimals;
+        const decimals = row.decimals;
         const selectedLogoUrl = validatedLogoUrl(row.logoUrl) ?? external?.logoUrl;
-        // Incomplete curated records remain usable in the API, but cannot attest decimals.
+        // Unknown curated decimals are preserved in configuration, not inferred into identity.
         if (symbol != null && decimals != null) {
           const identity = tokenIdentity({ chainId: Number(id), address, symbol, decimals });
           tokens.set(scope, {
@@ -131,17 +128,9 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
       }
     }
   }
-  const overrides = await readJson(path.join(options.curatedDirectory, 'classification-overrides.json')).catch(error => {
-    if (error?.code === 'ENOENT') return [];
-    throw error;
-  });
-  if (!Array.isArray(overrides) || overrides.length > 4096) throw new Error('Invalid classification overrides');
-  const overrideScopes = new Set<string>();
+  const overrides = await readClassificationRemovals(options.curatedDirectory, Object.keys(options.chains).map(Number));
   for (const row of overrides) {
-    if (row.default !== false || row.verified !== false || row.verification !== 'unverified') throw new Error('Classification overrides only remove trust');
     const scope = tokenScope(row.chainId, row.address);
-    if (overrideScopes.has(scope)) throw new Error('Duplicate classification override');
-    overrideScopes.add(scope);
     classifications.set(scope, { kind: 'classification', scope, payload: { chainId: row.chainId, address: row.address.toLowerCase(), default: false, verified: false, verification: 'unverified' } });
   }
   return [...tokens].map(([scope, payload]): Candidate => ({ kind: 'token', scope, payload })).concat([...assetsOnly.values()], [...classifications.values()]);
@@ -190,9 +179,11 @@ export function preparedDigest(prepared: PreparedPublication): string {
 
 export function signPublication(prepared: PreparedPublication, approvedDigest: string, trust: SignedTrust, roots: RootKey[], signingKeys: Record<string, string>, kinds?: readonly MetadataKind[]): { schema: 1; trust: SignedTrust; records: SignedRecord[] } {
   if (prepared.schema !== 1 || preparedDigest(prepared) !== approvedDigest) throw new Error('Prepared snapshot differs from approved digest');
+  validateConfigurationPublication(prepared.records);
   const verifier = new MetadataVerifier(roots);
   verifier.acceptTrust(trust);
-  if (encodeMetadataHeader(trust).length > MAX_HEADER_BYTES - 1024) throw new Error('Trust policy exceeds response-header budget; rotate keys or compact obsolete revocations');
+  const trustHeaderBytes = encodeMetadataHeader(trust).length;
+  if (trustHeaderBytes > MAX_HEADER_BYTES - 1024) throw new Error('Trust policy exceeds response-header budget; rotate keys or compact obsolete revocations');
   const seen = new Set<string>();
   const records = prepared.records.filter(row => !kinds || kinds.includes(row.kind)).map(row => {
     const id = `${row.kind}:${row.scope}`;
@@ -207,9 +198,19 @@ export function signPublication(prepared: PreparedPublication, approvedDigest: s
     const statement = { schema: 1 as const, kind: row.kind, scope: row.scope, keyId: key.id,
       sequence: prepared.sequence, issuedAt: prepared.issuedAt, expiresAt: prepared.expiresAt, digest: metadataDigest(row.payload) };
     const signature = signer.sign(signatureDigest('record', statement)).compactSerialized;
+    if (trustHeaderBytes + encodeMetadataHeader([{ statement, signature }]).length > MAX_HEADER_BYTES) throw new Error('Metadata evidence exceeds response-header budget');
     return verifier.verify(row.payload, { statement, signature }, row.kind, row.scope);
   });
+  assertConfigurationHeaderBudget(records, trust);
   return { schema: 1, trust, records };
+}
+
+export function assertConfigurationHeaderBudget(records: readonly SignedRecord[], trust: SignedTrust): void {
+  const chains = records.find(row => row.statement.kind === 'networks' && row.statement.scope === 'chains');
+  const domains = records.find(row => row.statement.kind === 'domains' && row.statement.scope === 'domains');
+  if (chains && domains && encodeMetadataHeader(trust).length + encodeMetadataHeader([
+    { statement: chains.statement, signature: chains.signature }, domains,
+  ]).length > MAX_HEADER_BYTES) throw new Error('Chains and domains exceed response-header budget');
 }
 
 export function signTrust(payload: SignedTrust['payload'], rootId: string, privateKey: string): SignedTrust {
@@ -218,6 +219,8 @@ export function signTrust(payload: SignedTrust['payload'], rootId: string, priva
 }
 
 export function compactPublication(publication: { schema: 1; trust: SignedTrust; records: SignedRecord[] }) {
+  validateConfigurationPublication(publication.records.map(row => ({ kind: row.statement.kind, scope: row.statement.scope, payload: row.payload })));
+  assertConfigurationHeaderBudget(publication.records, publication.trust);
   const documents: Record<string, unknown> = Object.create(null);
   const records = publication.records.map(record => {
     if (record.statement.kind !== 'descriptor') return record;

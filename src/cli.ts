@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { importTokenSources, importDescriptors, preparedDigest, signPublication, compactPublication, type ImportOptions, type PreparedPublication } from './publisher.ts';
 import type { MetadataKind, RootKey, SignedTrust } from './protocol.ts';
+import { importConfigurationSources } from './configuration.ts';
 import { validatePublicNetworkPayload } from './protocol.ts';
 
 const [command, configFile, output = 'work/prepared.json'] = process.argv.slice(2);
@@ -13,11 +14,11 @@ const config = JSON.parse(await fs.readFile(configFile, 'utf8')) as ImportOption
 };
 await fs.mkdir(path.dirname(output), { recursive: true });
 if (command === 'prepare') {
-  if (config.networks) validatePublicNetworkPayload(config.networks);
-  const records = await importTokenSources(config);
+  if (!config.networks || !config.domains) throw new Error('Preparation requires complete public configuration');
+  validatePublicNetworkPayload(config.networks);
+  const records = await importTokenSources({ ...config, chains: config.networks });
   if (config.registryDirectory) records.push(...await importDescriptors(config.registryDirectory));
-  if (config.networks) records.push({ kind: 'networks', scope: 'chains', payload: config.networks });
-  if (config.domains) records.push({ kind: 'domains', scope: 'domains', payload: config.domains });
+  records.push(...await importConfigurationSources({ curatedDirectory: config.curatedDirectory, networks: config.networks, domains: config.domains }));
   records.sort((a, b) => `${a.kind}:${a.scope}`.localeCompare(`${b.kind}:${b.scope}`, 'en'));
   const prepared: PreparedPublication = {
     schema: 1, sequence: config.sequence, issuedAt: config.issuedAt, expiresAt: config.expiresAt,

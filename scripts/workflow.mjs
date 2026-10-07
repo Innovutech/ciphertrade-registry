@@ -53,7 +53,7 @@ if (mode === 'prepare') {
   await fs.writeFile('work/sign.json', JSON.stringify({ prepared: 'work/prepared.json', approvedDigest: process.env.APPROVED_DIGEST,
     trustFile: 'trust/policy.json', rootsFile: 'trust/roots.json', kinds }));
 } else if (mode === 'assemble') {
-  const { MetadataVerifier, metadataDigest } = await import('../src/protocol.ts');
+  const { MetadataVerifier, metadataDigest, validateConfigurationPublication } = await import('../src/protocol.ts');
   const { preparedDigest } = await import('../src/publisher.ts');
   const prepared = await json('work/prepared.json');
   if (preparedDigest(prepared) !== process.env.APPROVED_DIGEST) throw new Error('Prepared artifact changed');
@@ -78,6 +78,9 @@ if (mode === 'prepare') {
   for (const row of prepared.records) {
     if (records.get(`${row.kind}:${row.scope}`)?.statement.digest !== metadataDigest(row.payload)) throw new Error('Signed artifact differs from reviewed source');
   }
+  validateConfigurationPublication([...records.values()].map(record => ({ kind: record.statement.kind, scope: record.statement.scope, payload: record.payload })));
+  const { assertConfigurationHeaderBudget } = await import('../src/publisher.ts');
+  assertConfigurationHeaderBudget([...records.values()], trust);
   await fs.mkdir('dist', { recursive: true });
   const { compactPublication } = await import('../src/publisher.ts');
   const bytes = JSON.stringify(compactPublication({ schema: 1, trust, records: [...records.values()] }));

@@ -1,0 +1,65 @@
+[
+  {
+    "bridgeAddress": "0x96117882328407B13A5f378de25764C4eD8477eA",
+    "bridgeType": "native",
+    "publicTokenAddress": null,
+    "privateTokenAddress": "0x6cE8907414986E73De9e7D28d62Ea2080F8E88E1",
+    "default": true,
+    "verified": true,
+    "sortOrder": 1
+  },
+  {
+    "bridgeAddress": "0xDB54B4B1B8F9614567bd673A17a5cD31A3DD6033",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0x878a42D3cB737DEC9E6c7e7774d973F46fd8ed4C",
+    "privateTokenAddress": "0x1503b02a4Aa27812306c65116FD23b733603F142",
+    "default": true,
+    "verified": true,
+    "sortOrder": 2
+  },
+  {
+    "bridgeAddress": "0xaa63D41890D576F93d79272988e212d8B46CdD26",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0x63f3D2Cc8F5608F57ce6E5Aa3590A2Beb428D19C",
+    "privateTokenAddress": "0x37f78dcCd15876F74391EF1F01b76557D9FF1dea",
+    "default": true,
+    "verified": true,
+    "sortOrder": 3
+  },
+  {
+    "bridgeAddress": "0x549634daBE8237EBda7473d7aA2bB17459826781",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0x9e961430053cd5AbB3b060544cEcCec848693Cf0",
+    "privateTokenAddress": "0xcEF137E96eDF68EE99D4CdEa7085f154d74895cD",
+    "default": true,
+    "verified": true,
+    "sortOrder": 4
+  },
+  {
+    "bridgeAddress": "0x9EBEbC8F5Cff021459a56A681719dF1C0A7435cc",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0x5dBDb2E5D51c3FFab5D6B862Caa11FCe1D83F492",
+    "privateTokenAddress": "0xB50F1680a4C69145ABc09A2A71c8D5b8051578cF",
+    "default": true,
+    "verified": true,
+    "sortOrder": 5
+  },
+  {
+    "bridgeAddress": "0x6f1628D7F1D5d5aDF39b924a28acb10B5C9df283",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0x8bca4e6bbE402DB4aD189A316137aD08206154FB",
+    "privateTokenAddress": "0xF009BADb181d471995a1CFF406C3Db7B180F64eA",
+    "default": true,
+    "verified": true,
+    "sortOrder": 6
+  },
+  {
+    "bridgeAddress": "0x4AFe67D4aD7AF0a70ACe6f79FbfAB66C72211c9F",
+    "bridgeType": "erc20",
+    "publicTokenAddress": "0xe3E2cd3Abf412c73a404b9b8227B71dE3CfE829D",
+    "privateTokenAddress": "0x1245f50a3E9129A219b4bf66D10fEaEA47467B69",
+    "default": true,
+    "verified": true,
+    "sortOrder": 7
+  }
+]

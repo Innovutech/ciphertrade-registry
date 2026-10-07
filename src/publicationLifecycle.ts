@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
-import { MetadataVerifier, metadataDigest, type RootKey, type SignedTrust, type SignedRecord, type Evidence } from './protocol.ts';
+import { MetadataVerifier, metadataDigest, validateConfigurationPublication, type RootKey, type SignedTrust, type SignedRecord, type Evidence } from './protocol.ts';
 import { preparedDigest, type Candidate, type PreparedPublication } from './publisher.ts';
+import { isConfigurationHistory, verifyConfigurationHistory } from './configurationHistory.ts';
 
 export type Publication = { schema: 1; trust: SignedTrust; documents?: Record<string, unknown>; records: (Evidence & { payload?: unknown; payloadRef?: string })[] };
 export type VerifiedPublication = { trust: SignedTrust; records: SignedRecord[]; sequence: number; contentDigest: string };
@@ -25,7 +26,10 @@ export function verifyPrevious(input: Publication, roots: RootKey[], now = Date.
     if (scopes.has(id)) throw new Error('Duplicate previous scope');
     scopes.add(id);
     sequences.add(row.statement.sequence);
-    return verifier.verify(payload, { statement: row.statement, signature: row.signature }, row.statement.kind, row.statement.scope, row.statement.issuedAt);
+    const evidence = { statement: row.statement, signature: row.signature };
+    return isConfigurationHistory(row.statement.kind, row.statement.scope, payload)
+      ? verifyConfigurationHistory(payload, evidence, verifier)
+      : verifier.verify(payload, evidence, row.statement.kind, row.statement.scope, row.statement.issuedAt);
   });
   if (sequences.size !== 1) throw new Error('Mixed previous publication versions');
   return { trust: input.trust, records, sequence: [...sequences][0]!, contentDigest: catalogDigest(records.map(row => ({ ...row.statement, payload: row.payload }))) };
@@ -62,6 +66,7 @@ export function finalizePublication(options: {
     records = reviewed.records;
     sources = reviewed.sources;
   } else throw new Error('Unsupported publication mode');
+  validateConfigurationPublication(records);
   const sequence = Math.max(now, (previous?.sequence ?? 0) + 1);
   if (!Number.isSafeInteger(sequence) || sequence <= 0) throw new Error('Invalid publication sequence');
   let expiresAt = Math.min(now + WEEK, trust.payload.expiresAt ?? Infinity);
