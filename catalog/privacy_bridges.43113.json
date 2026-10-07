@@ -1,0 +1,22 @@
+[
+  {
+    "bridgeAddress": "0xe6932f6Ab846bf389f7ef355dd5830594623B8E5",
+    "bridgeType": "pod-native",
+    "publicTokenAddress": "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
+    "privateTokenAddress": "0x74d47cD68203066c97BA99787Fe1e0c68Ce42b04",
+    "factoryAddress": "0xaf9327277cb370d536d2c8a9e15a0a7ff6c42c15",
+    "default": true,
+    "verified": true,
+    "sortOrder": 10
+  },
+  {
+    "bridgeAddress": "0xE75373ADb4AD1A5634a10f4644822943830b18c5",
+    "bridgeType": "pod-erc20",
+    "publicTokenAddress": "0x5425890298aed601595a70AB815c96711a31Bc65",
+    "privateTokenAddress": "0x21576D8CCE47d044C5815bd59eca1F6DA94c65A5",
+    "factoryAddress": "0xaf9327277cb370d536d2c8a9e15a0a7ff6c42c15",
+    "default": true,
+    "verified": true,
+    "sortOrder": 20
+  }
+]

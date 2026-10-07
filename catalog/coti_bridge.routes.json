@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "sourceChainId": 2632500,
+      "destinationChainId": 1,
+      "sourceTokenSymbol": "COTI",
+      "destinationTokenSymbol": "COTI",
+      "sourceTokenAddress": "0x0000000000000000000000000000000000000000",
+      "destinationTokenAddress": "0xDDB3422497E61e13543BeA06989C0789117555c5",
+      "bridgeRecipientAddress": "0xcd50cFd2F94841858E7C702E1505994FA498a577",
+      "requiresQuotaCheck": true,
+      "quotaTokenAddress": "0x0000000000000000000000000000000000000000",
+      "quotaApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/cap-meter-coti",
+      "statusApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/workflow-orchestrator-service/tracking/by-tx-hash",
+      "decimals": 18
+    },
+    {
+      "sourceChainId": 2632500,
+      "destinationChainId": 1,
+      "sourceTokenSymbol": "gCOTI",
+      "destinationTokenSymbol": "gCOTI",
+      "enabled": false,
+      "sourceTokenAddress": "0x7637C7838EC4Ec6b85080F28A678F8E234bB83D1",
+      "destinationTokenAddress": "0xAf2CA40d3fc4459436D11B94d21FA4b8A89fB51d",
+      "bridgeRecipientAddress": "0x61BF10A1a27B2d99De0a59a06200A62ED579D685",
+      "requiresQuotaCheck": true,
+      "quotaTokenAddress": "0x7637c7838ec4ec6b85080f28a678f8e234bb83d1",
+      "quotaApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/cap-meter-gcoti",
+      "statusApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/workflow-orchestrator-service/tracking/by-tx-hash",
+      "decimals": 18
+    },
+    {
+      "sourceChainId": 1,
+      "destinationChainId": 2632500,
+      "sourceTokenSymbol": "COTI",
+      "destinationTokenSymbol": "COTI",
+      "sourceTokenAddress": "0xDDB3422497E61e13543BeA06989C0789117555c5",
+      "destinationTokenAddress": "0x0000000000000000000000000000000000000000",
+      "bridgeRecipientAddress": "0xcd50cFd2F94841858E7C702E1505994FA498a577",
+      "requiresQuotaCheck": false,
+      "quotaTokenAddress": null,
+      "quotaApiBaseUrl": null,
+      "statusApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/workflow-orchestrator-service/tracking/by-tx-hash",
+      "decimals": 18
+    },
+    {
+      "sourceChainId": 1,
+      "destinationChainId": 2632500,
+      "sourceTokenSymbol": "gCOTI",
+      "destinationTokenSymbol": "gCOTI",
+      "enabled": false,
+      "sourceTokenAddress": "0xAf2CA40d3fc4459436D11B94d21FA4b8A89fB51d",
+      "destinationTokenAddress": "0x7637C7838EC4Ec6b85080F28A678F8E234bB83D1",
+      "bridgeRecipientAddress": "0x439D73635B9590E9d9e2CC9eCAB832B057d2E25B",
+      "requiresQuotaCheck": false,
+      "quotaTokenAddress": null,
+      "quotaApiBaseUrl": null,
+      "statusApiBaseUrl": "https://mainnet-apps-1-gw.coti.io/workflow-orchestrator-service/tracking/by-tx-hash",
+      "decimals": 18
+    }
+  ]
+}

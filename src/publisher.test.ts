@@ -6,25 +6,30 @@ import path from 'node:path';
 import { ethers } from 'ethers';
 import { MetadataVerifier, metadataDigest, tokenScope, signatureDigest, validatePublicNetworkPayload, type TrustPayload, type SignedRecord } from './protocol.ts';
 import { importTokenSources, preparedDigest, signPublication, signTrust, type PreparedPublication } from './publisher.ts';
+import { emptyConfigurationFixture } from './configurationFixtures.ts';
 
 const now = Date.now();
 const root = new ethers.SigningKey('0x' + '11'.repeat(32));
 const signer = new ethers.SigningKey('0x' + '22'.repeat(32));
+const configurationSigner = new ethers.SigningKey('0x' + '44'.repeat(32));
 const roots = [{ id: 'test-root', publicKey: root.compressedPublicKey }];
 const trustPayload: TrustPayload = { schema: 1, sequence: 1, issuedAt: now - 1000, expiresAt: now + 86400000,
-  keys: [{ id: 'test-tokens', publicKey: signer.compressedPublicKey, kinds: ['token'], notBefore: now - 2000, expiresAt: now + 86400000 }],
+  keys: [{ id: 'test-tokens', publicKey: signer.compressedPublicKey, kinds: ['token'], notBefore: now - 2000, expiresAt: now + 86400000 },
+    { id: 'test-configuration', publicKey: configurationSigner.compressedPublicKey, kinds: ['networks', 'domains', 'classification'], notBefore: now - 2000, expiresAt: now + 86400000 }],
   revokedDigests: [], minimumSequences: { token: 1, asset: 1, descriptor: 1, networks: 1, domains: 1, classification: 1 },
 };
 const trust = () => signTrust(structuredClone(trustPayload), roots[0].id, root.privateKey);
 const payload = { chainId: 1, address: '0x' + '33'.repeat(20), symbol: 'EXAMPLE', decimals: 6, source: 'trustwallet', revision: 'a'.repeat(40) };
 const candidate = { kind: 'token' as const, scope: tokenScope(1, payload.address), payload };
+const signingKeys = { 'test-tokens': signer.privateKey, 'test-configuration': configurationSigner.privateKey };
 const prepared = (): PreparedPublication => ({ schema: 1, sequence: 1, issuedAt: now, expiresAt: now + 3600000,
-  sources: [{ name: 'fixture', revision: 'a'.repeat(40) }], records: [candidate] });
-const signed = () => signPublication(prepared(), preparedDigest(prepared()), trust(), roots, { 'test-tokens': signer.privateKey }).records[0]!;
+  sources: [{ name: 'fixture', revision: 'a'.repeat(40) }], records: [candidate, ...emptyConfigurationFixture()] });
+const signed = () => signPublication(prepared(), preparedDigest(prepared()), trust(), roots, signingKeys).records[0]!;
 const verify = (verifier: MetadataVerifier, row: SignedRecord, kind = row.statement.kind, scope = row.statement.scope, time = now) => verifier.verify(row.payload, { statement: row.statement, signature: row.signature }, kind, scope, time);
 
 test('public network policy rejects private configuration before the signer can publish it', () => {
-  const row = { name: 'Ethereum', nativeSymbol: 'ETH', rpcUrl: 'https://ethereum.example' };
+  const row = { name: 'Ethereum', nativeSymbol: 'ETH', rpcUrl: 'https://ethereum.example', swapRoutes: [],
+    appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } };
   validatePublicNetworkPayload({ '1': row });
   for (const extra of [{ rpcUrlFallback: ['https://private.example'] }, { explorerApiKey: 'private' }, { rpcUrl: 'https://172.16.1.1' },
     { rpcUrl: 'https://user:secret@example.com' }, { rpcUrl: 'https://[::1]' }, { privacy: { supportsPrivacy: false, secret: 'private' } }]) {
@@ -50,7 +55,7 @@ test('approval digest binds payload, source revisions, scope and publication tim
   ]) {
     const p = structuredClone(prepared());
     change(p);
-    assert.throws(() => signPublication(p, preparedDigest(prepared()), trust(), roots, { 'test-tokens': signer.privateKey }), /approved digest/);
+    assert.throws(() => signPublication(p, preparedDigest(prepared()), trust(), roots, signingKeys), /approved digest/);
   }
 });
 
@@ -61,7 +66,7 @@ test('wrong roots, unknown delegates and cross-role use fail closed', () => {
   assert.throws(() => verify(verifier, signed(), 'networks', 'chains'), /scope/);
   const p = prepared();
   p.records[0] = { kind: 'descriptor', scope: 'test', payload: {} };
-  assert.throws(() => signPublication(p, preparedDigest(p), trust(), roots, { 'test-tokens': signer.privateKey }), /Missing scoped/);
+  assert.throws(() => signPublication(p, preparedDigest(p), trust(), roots, signingKeys), /Missing scoped/);
 });
 
 test('wrong chain/address, changed units and invalid signatures are rejected', () => {
@@ -152,15 +157,15 @@ test('curated logo URLs are signed without fetching mutable image content', asyn
     assert.equal(imported.logoUrl, row.logoUrl);
     assert.equal(Object.hasOwn(imported, 'logoSha256'), false);
     assert.equal(downloads, 0);
-    const p = { ...prepared(), records };
-    const signedRow = signPublication(p, preparedDigest(p), trust(), roots, { 'test-tokens': signer.privateKey }).records[0]!;
+    const p = { ...prepared(), records: [...records, ...emptyConfigurationFixture()] };
+    const signedRow = signPublication(p, preparedDigest(p), trust(), roots, signingKeys).records[0]!;
     const verifier = new MetadataVerifier(roots);
     verifier.acceptTrust(trust());
     verify(verifier, signedRow);
     assert.throws(() => verify(verifier, { ...signedRow, payload: { ...imported, logoUrl: 'https://attacker.example/logo.png' } }), /digest/);
     for (const logoUrl of ['http://example.com/logo.png', 'https://user:password@example.com/logo.png']) {
       await fs.writeFile(filename, JSON.stringify([{ ...row, logoUrl }]));
-      await assert.rejects(importTokenSources(options), /logo URL/);
+      await assert.rejects(importTokenSources(options), /endpoint/);
     }
   } finally {
     globalThis.fetch = originalFetch;
