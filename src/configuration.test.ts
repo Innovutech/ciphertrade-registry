@@ -408,3 +408,26 @@ test('release fallbacks are generated exclusively from complete publisher config
   assert.equal((configurationFallbacks(removed).get('bundledMemoConfig.2632500.json') as { memoGcAddress: null }).memoGcAddress, null);
   assert.throws(() => configurationFallbacks(records.filter(row => row.scope !== 'tokens:1')), /Incomplete/);
 });
+
+test('published and release explorer fallbacks retain the existing EVM Blockscout URLs', async () => {
+  const expected = {
+    '1': 'https://eth.blockscout.com',
+    '10': 'https://optimism.blockscout.com',
+    '137': 'https://polygon.blockscout.com',
+    '8453': 'https://base.blockscout.com',
+    '42161': 'https://arbitrum.blockscout.com',
+  };
+  const records = await imports();
+  const p = prepared(records);
+  const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
+  const record = signed.records.find(row => row.statement.scope === 'chains')!;
+  const payload = verifier().verify(record.payload, evidence(record), 'networks', 'chains', now).payload as PublicNetworkPayload;
+  const bundled = configurationFallbacks(records).get('chains.json') as (PublicNetwork & { chainId: number })[];
+  for (const [chainId, url] of Object.entries(expected)) {
+    assert.equal(payload[chainId]!.blockscoutUrl, url, `published explorer for ${chainId}`);
+    assert.equal(bundled.find(chain => chain.chainId === Number(chainId))!.blockscoutUrl, url, `release explorer for ${chainId}`);
+  }
+  const altered = structuredClone(payload);
+  altered['1']!.blockscoutUrl = 'https://unapproved.example.com';
+  assert.throws(() => verifier().verify(altered, evidence(record), 'networks', 'chains', now), /digest/);
+});
