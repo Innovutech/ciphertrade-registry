@@ -24,7 +24,7 @@ export type SignedRecord<T = unknown> = Evidence & { payload: T };
 export type Checkpoint = { sequence: number; digest: string };
 export type TokenIdentity = { chainId: number; address: string; symbol: string; decimals: number };
 export type TokenPublication = TokenIdentity & {
-  name?: string; logoUrl?: string;
+  name?: string; logoUrl?: string; spam?: boolean;
   source: string; revision: string;
 };
 export const SWAP_ROUTES = ['carbon', 'cipherdex', 'wrapped-native', 'uniswap', 'kyber'] as const;
@@ -230,7 +230,10 @@ export function validateMetadataPayload(kind: MetadataKind, scope: string, paylo
   if (kind === 'token' || kind === 'asset' || kind === 'classification') {
     positive(row.chainId);
     if (typeof row.address !== 'string' || tokenScope(row.chainId, row.address) !== scope) throw new Error('Payload identity mismatch');
-    if (kind === 'token') tokenIdentity(payload);
+    if (kind === 'token') {
+      tokenIdentity(payload);
+      if (Object.hasOwn(row, 'spam') && typeof row.spam !== 'boolean') throw new Error('Invalid token spam flag');
+    }
     if (kind === 'classification') {
       if (typeof row.default !== 'boolean' || typeof row.verified !== 'boolean'
         || !['official', 'community', 'verified', 'unverified'].includes(String(row.verification))

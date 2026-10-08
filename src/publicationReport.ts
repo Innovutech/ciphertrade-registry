@@ -93,7 +93,12 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
   });
   const baseline = context.baseline ? { ...context.baseline,
     ...(repositories.curated ? { url: `https://github.com/${repositories.curated}/releases/tag/metadata-${context.baseline.sequence}` } : {}) } : null;
-  return { firstPublication: !previous, sequence: prepared.sequence, sources, added, changed, removed,
+  const curated = new Set(prepared.records.filter(row => row.kind === 'classification'
+    && ((row.payload as { verified?: boolean }).verified === true || (row.payload as { default?: boolean }).default === true))
+    .map(row => row.scope));
+  const spamConflicts = prepared.records.filter(row => row.kind === 'token'
+    && (row.payload as { spam?: boolean }).spam === true && curated.has(row.scope)).map(row => row.scope);
+  return { firstPublication: !previous, sequence: prepared.sequence, sources, added, changed, removed, spamConflicts,
     recordCount: prepared.records.length, baseline, summary, changes, documents: [...documents.values()],
     additions: added.map(id => ({ id, after: afterRows.get(id)!.payload })),
     removals: removed.map(id => ({ id, before: beforeRows.get(id)!.payload })), notes: context.notes ?? [] };
@@ -119,6 +124,12 @@ export function renderPublicationReview(report: PublicationReport, digest: strin
     lines.push(`Compared with: ${report.baseline.url ? `[${name}](${report.baseline.url})` : name}${report.baseline.publishedAt ? ` (published ${escape(report.baseline.publishedAt)})` : ''}.`,
       `Baseline content digest: \`${report.baseline.contentDigest}\``, '');
   } else lines.push(report.firstPublication ? 'First publication; all records require review.' : 'Baseline publication details unavailable.', '');
+  if (report.spamConflicts.length) {
+    lines.push('### Spam classification conflicts', '',
+      `${report.spamConflicts.length} flagged tokens are also curated as verified/default. Review these identities before approval:`,
+      ...report.spamConflicts.slice(0, compact ? 20 : report.spamConflicts.length).map(scope => `- ${escape(scope)}`), '');
+    if (compact && report.spamConflicts.length > 20) lines.push('The full conflict list is in review.md and review.json.', '');
+  }
   lines.push(`Records: ${report.recordCount}. Added: ${report.added.length}; changed: ${report.changed.length}; removed: ${report.removed.length}.`, '',
     '| Change category | Count |', '| --- | ---: |',
     `| Token details changed, excluding logo URLs | ${report.summary.tokenDetailsChanged} |`,
