@@ -22,17 +22,19 @@ if (mode === 'prepare') {
 } else if (mode === 'digest') {
   const { preparedDigest } = await import('../src/publisher.ts');
   const prepared = await json('work/prepared.json');
-  const { publicationReport } = await import('../src/publicationReport.ts');
+  const { publicationReport, renderPublicationReview } = await import('../src/publicationReport.ts');
+  const { publicationReviewContext } = await import('./publication-review.mjs');
   const previous = await latestPublication((await json('trust/roots.json')).keys);
   prepared.baseDigest = previous?.contentDigest ?? null;
   await fs.writeFile('work/prepared.json', JSON.stringify(prepared));
   const digest = preparedDigest(prepared);
-  const report = publicationReport(prepared, previous ?? undefined);
+  const context = await publicationReviewContext(prepared, previous);
+  const report = publicationReport(prepared, previous ?? undefined, context);
   const changed = !previous || report.added.length + report.changed.length + report.removed.length > 0;
   await fs.writeFile('work/review.json', JSON.stringify(report, null, 2));
+  await fs.writeFile('work/review.md', renderPublicationReview(report, digest));
   await fs.appendFile(process.env.GITHUB_OUTPUT, `digest=${digest}\nchanged=${changed}\n`);
-  await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,
-    `## Metadata publication\n\nApproved snapshot digest: \`${digest}\`\n\nRecords: ${prepared.records.length}. Added: ${report.added.length}; changed: ${report.changed.length}; removed: ${report.removed.length}.\n\nReview prepared-metadata/review.json and the complete prepared snapshot before approval.\n\nSources:\n${prepared.sources.map(source => `- ${source.name}: \`${source.revision}\``).join('\n')}\n`);
+  await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, renderPublicationReview(report, digest, true));
 } else if (mode === 'finalize') {
   const { finalizePublication } = await import('../src/publicationLifecycle.ts');
   const { preparedDigest } = await import('../src/publisher.ts');
@@ -87,6 +89,8 @@ if (mode === 'prepare') {
   if (Buffer.byteLength(bytes) > 64 * 1024 * 1024) throw new Error('Publication exceeds API artifact budget');
   await fs.writeFile('dist/publication.json', bytes);
   await fs.writeFile('dist/publication.sha256', ethers.sha256(ethers.toUtf8Bytes(bytes)) + '\n');
+  const { publicationProvenance } = await import('./publication-review.mjs');
+  await fs.writeFile('dist/review-provenance.json', JSON.stringify(await publicationProvenance(prepared, latest), null, 2));
 } else if (mode === 'check-setup') {
   const roots = await json('trust/roots.json');
   const { MetadataVerifier } = await import('../src/protocol.ts');

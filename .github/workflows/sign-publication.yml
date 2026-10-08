@@ -117,7 +117,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           APPROVED_DIGEST: ${{ needs.finalize.outputs.digest }}
-      - run: gh release create "metadata-${SEQUENCE}" dist/publication.json dist/publication.sha256 --title "Metadata ${SEQUENCE}" --notes "Validated signed metadata publication."
+      - run: gh release create "metadata-${SEQUENCE}" dist/publication.json dist/publication.sha256 dist/review-provenance.json --title "Metadata ${SEQUENCE}" --notes "Validated signed metadata publication."
         env:
           GH_TOKEN: ${{ github.token }}
           SEQUENCE: ${{ needs.finalize.outputs.sequence }}
