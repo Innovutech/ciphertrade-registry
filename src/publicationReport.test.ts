@@ -120,3 +120,24 @@ test('compact summary bounds details while JSON and the readable report retain e
   assert.match(renderPublicationReview(report, '0x' + '2'.repeat(64), true), /Showing 20 of 25 entries/);
   assert.match(renderPublicationReview(report, '0x' + '2'.repeat(64)), /token:1:24/);
 });
+
+test('spam corrections are reviewable changes and curated conflicts are explicit without altering trust', () => {
+  const scope = '1:0x' + '11'.repeat(20);
+  const payload = { symbol: 'SPAM', decimals: 6, spam: true, source: 'trustwallet', revision: 'old' };
+  const records = [{ statement: { kind: 'token', scope }, payload }] as SignedRecord[];
+  const prepared = { schema: 1, sequence: 2, issuedAt: 1, expiresAt: 2, sources: [], records: [
+    { kind: 'token', scope, payload: { ...payload, revision: 'new' } },
+    { kind: 'classification', scope, payload: { default: false, verified: true, verification: 'community' } },
+  ] } as PreparedPublication;
+  const snapshot = structuredClone(prepared);
+  assert.deepEqual(publicationReport(prepared, { records }).spamConflicts, [scope]);
+  assert.match(renderPublicationReview(publicationReport(prepared, { records }), preparedDigest(prepared), true), /Spam classification conflicts/);
+  assert.deepEqual(publicationReport(prepared, { records }).changed, []);
+  assert.deepEqual(prepared, snapshot);
+  (prepared.records[0]!.payload as typeof payload).spam = false;
+  assert.deepEqual(publicationReport(prepared, { records }).changed, [`token:${scope}`]);
+  assert.deepEqual(publicationReport(prepared, { records }).spamConflicts, []);
+  prepared.records[1]!.payload = { default: false, verified: false, verification: 'unverified' };
+  (prepared.records[0]!.payload as typeof payload).spam = true;
+  assert.deepEqual(publicationReport(prepared, { records }).spamConflicts, []);
+});

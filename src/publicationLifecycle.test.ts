@@ -111,6 +111,19 @@ test('record version allocation, legacy authorization deadline and compact histo
   assert.throws(() => finalizePublication({ mode: 'renewal', previous: previous(), roots, trust: trust(finite), now: now + 10001 }), /validity/);
 });
 
+test('compaction and renewal preserve optional spam flags and legacy absence', () => {
+  for (const extra of [{}, { spam: true }, { spam: false }]) {
+    const p = structuredClone(prepared);
+    p.records[0]!.payload = { ...payload, ...extra };
+    const published = signPublication(p, preparedDigest(p), trust(), roots,
+      { token: key.privateKey, configuration: configurationKey.privateKey });
+    const prior = verifyPrevious(compactPublication(published), roots, now);
+    const renewed = finalizePublication({ mode: 'renewal', previous: prior, roots, trust: trust(), now: now + 86400000 });
+    assert.deepEqual(renewed.records[0]!.payload, { ...payload, ...extra });
+    assert.equal(catalogDigest(renewed.records), prior.contentDigest);
+  }
+});
+
 test('a pre-migration approved publication cannot renew or publish without complete configuration', () => {
   const legacy = publication();
   legacy.records = legacy.records.filter(row => row.statement.kind === 'token');

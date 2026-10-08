@@ -77,7 +77,8 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
         } });
         try {
           const info = await readJson(path.join(directory, asset.name, 'info.json')) as Record<string, unknown>;
-          if (typeof info.id !== 'string' || info.id.toLowerCase() !== asset.name.toLowerCase() || info.status !== 'active') {
+          if (typeof info.id !== 'string' || info.id.toLowerCase() !== asset.name.toLowerCase()
+            || typeof info.status !== 'string' || !['active', 'spam', 'abandoned'].includes(info.status)) {
             assetsOnly.delete(scope);
             continue;
           }
@@ -86,6 +87,7 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
           tokens.set(tokenScope(identity.chainId, identity.address), {
             ...identity, ...(safeText(info.name, 128) ? { name: info.name } : {}),
             ...image,
+            spam: info.status === 'spam',
             source: 'trustwallet', revision: options.revisions.trustWallet,
           });
           assetsOnly.delete(scope);
@@ -111,6 +113,7 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
             ...identity,
             ...(safeText(row.name ?? row.tokenName, 128) ? { name: String(row.name ?? row.tokenName) } : external?.name ? { name: external.name } : {}),
             ...(selectedLogoUrl ? { logoUrl: selectedLogoUrl } : {}),
+            ...(external?.spam !== undefined ? { spam: external.spam } : {}),
             source: 'ciphertrade', revision: options.revisions.curated,
           });
           assetsOnly.delete(scope);

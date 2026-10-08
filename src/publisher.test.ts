@@ -44,6 +44,29 @@ test('signed per-token publication needs no whole-catalog client download', () =
   assert.deepEqual(result.payload, payload);
   assert.ok(Object.isFrozen(result.payload));
   assert.equal(Object.hasOwn(result.payload as object, 'verified'), false);
+  assert.equal(Object.hasOwn(result.payload as object, 'spam'), false);
+});
+
+test('optional spam flags are boolean, signed, and do not change identity or publication schema', () => {
+  for (const spam of [true, false]) {
+    const p = prepared();
+    p.records[0] = { ...candidate, payload: { ...payload, spam } };
+    assert.throws(() => signPublication(p, preparedDigest(prepared()), trust(), roots, signingKeys), /approved digest/);
+    const row = signPublication(p, preparedDigest(p), trust(), roots, signingKeys).records[0]!;
+    assert.equal(row.statement.schema, 1);
+    assert.equal(row.statement.scope, candidate.scope);
+    const verifier = new MetadataVerifier(roots);
+    verifier.acceptTrust(trust(), now);
+    assert.deepEqual(verify(verifier, row).payload, { ...payload, spam });
+    assert.throws(() => verify(verifier, { ...row, payload }), /digest/);
+    assert.throws(() => verify(verifier, { ...row, payload: { ...payload, spam: !spam } }), /digest/);
+    assert.throws(() => verify(verifier, row, 'token', tokenScope(10, payload.address)), /scope/);
+  }
+  for (const spam of [null, 'true', 'false', 0, 1, [], {}]) {
+    const p = prepared();
+    p.records[0] = { ...candidate, payload: { ...payload, spam } };
+    assert.throws(() => signPublication(p, preparedDigest(p), trust(), roots, signingKeys), /spam flag/);
+  }
 });
 
 test('approval digest binds payload, source revisions, scope and publication times', () => {
@@ -211,6 +234,70 @@ test('Trust Wallet imports token and logo-only records with revision-pinned URLs
     assert.equal(token[0]!.kind, 'token');
     assert.equal((token[0]!.payload as Record<string, unknown>).logoUrl, logo.logoUrl);
     assert.equal(Object.hasOwn(token[0]!.payload as object, 'logoSha256'), false);
+  } finally {
+    assert.equal(path.dirname(directory), os.tmpdir());
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('Trust Wallet imports all supported statuses as regular tokens, preserving names, tickers and logos', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-spam-test-'));
+  try {
+    const asset = path.join(directory, 'tw/blockchains/ethereum/assets', payload.address);
+    await fs.mkdir(asset, { recursive: true });
+    await fs.mkdir(path.join(directory, 'curated'));
+    const options = { curatedDirectory: path.join(directory, 'curated'), trustWalletDirectory: path.join(directory, 'tw'),
+      chains: { '1': { twChainId: 'ethereum' } }, revisions: { curated: 'b'.repeat(40), trustWallet: 'a'.repeat(40) } };
+    for (const status of ['spam', 'active', 'abandoned']) {
+      const info = { id: payload.address, symbol: status === 'spam' ? 'SPAM' : 'EXAMPLE',
+        name: status === 'spam' ? 'Spam token' : 'Example', decimals: 6, status, verified: true, default: true };
+      await fs.writeFile(path.join(asset, 'info.json'), JSON.stringify(info));
+      for (const hasLogo of [false, true]) {
+        if (hasLogo) await fs.writeFile(path.join(asset, 'logo.png'), Buffer.from('89504e470d0a1a0a', 'hex'));
+        else await fs.rm(path.join(asset, 'logo.png'), { force: true });
+        const rows = await importTokenSources(options);
+        assert.deepEqual(rows.map(row => [row.kind, row.scope]), [['token', candidate.scope]]);
+        assert.deepEqual(rows[0]!.payload, { ...payload, name: info.name, symbol: info.symbol, spam: status === 'spam',
+          ...(hasLogo ? { logoUrl: `https://raw.githubusercontent.com/trustwallet/assets/${options.revisions.trustWallet}/blockchains/ethereum/assets/${payload.address}/logo.png` } : {}) });
+      }
+    }
+    for (const invalid of [{ status: 'unknown' }, { status: ['spam'] }, { status: null }, { id: '0x' + '55'.repeat(20) },
+      { symbol: '' }, { decimals: -1 }, { decimals: 256 }]) {
+      await fs.writeFile(path.join(asset, 'info.json'), JSON.stringify({ id: payload.address, symbol: 'SPAM', decimals: 6, status: 'spam', ...invalid }));
+      assert.equal((await importTokenSources(options)).some(row => row.kind === 'token'), false);
+    }
+  } finally {
+    assert.equal(path.dirname(directory), os.tmpdir());
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('curated metadata preserves imported spam flags without creating classifications for external tokens', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-spam-test-'));
+  try {
+    const asset = path.join(directory, 'tw/blockchains/ethereum/assets', payload.address);
+    const curated = path.join(directory, 'curated');
+    await fs.mkdir(asset, { recursive: true });
+    await fs.mkdir(curated);
+    const options = { curatedDirectory: curated, trustWalletDirectory: path.join(directory, 'tw'),
+      chains: { '1': { twChainId: 'ethereum' } }, revisions: { curated: 'b'.repeat(40), trustWallet: 'a'.repeat(40) } };
+    const curatedRow = { tokenAddress: payload.address, tokenSymbol: 'CURATED', decimals: 18, verification: 'official' };
+    for (const prefix of ['tokens', 'verified_tokens', 'default_tokens']) {
+      await fs.writeFile(path.join(curated, `${prefix}.1.json`), JSON.stringify([curatedRow]));
+    }
+    for (const status of ['spam', 'active', 'abandoned']) {
+      await fs.writeFile(path.join(asset, 'info.json'), JSON.stringify({ id: payload.address, symbol: 'SPAM', decimals: 6, status }));
+      const rows = await importTokenSources(options);
+      const token = rows.find(row => row.kind === 'token')!.payload as Record<string, unknown>;
+      assert.equal(token.spam, status === 'spam');
+      assert.equal(token.symbol, 'CURATED');
+      assert.equal(token.decimals, 18);
+      assert.equal(token.source, 'ciphertrade');
+      assert.deepEqual(rows.find(row => row.kind === 'classification')!.payload,
+        { chainId: 1, address: payload.address, default: true, verified: true, verification: 'official' });
+    }
+    await fs.rm(path.join(asset, 'info.json'));
+    assert.equal(Object.hasOwn((await importTokenSources(options)).find(row => row.kind === 'token')!.payload as object, 'spam'), false);
   } finally {
     assert.equal(path.dirname(directory), os.tmpdir());
     await fs.rm(directory, { recursive: true, force: true });
