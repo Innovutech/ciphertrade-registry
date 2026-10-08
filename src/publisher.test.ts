@@ -59,6 +59,24 @@ test('approval digest binds payload, source revisions, scope and publication tim
   }
 });
 
+test('logo URL revision changes require new approval and reject reuse of the old signed proof', () => {
+  const reviewed = structuredClone(prepared());
+  const url = (revision: string) => `https://raw.githubusercontent.com/trustwallet/assets/${revision}/blockchains/ethereum/assets/${payload.address}/logo.png`;
+  reviewed.records[0] = { ...candidate, payload: { ...payload, logoUrl: url('a'.repeat(40)) } };
+  const approvedDigest = preparedDigest(reviewed);
+  const publication = signPublication(reviewed, approvedDigest, trust(), roots, signingKeys);
+  const changed = structuredClone(reviewed);
+  changed.records[0] = { ...candidate, payload: { ...payload, logoUrl: url('b'.repeat(40)) } };
+  assert.notEqual(preparedDigest(changed), approvedDigest);
+  assert.throws(() => signPublication(changed, approvedDigest, trust(), roots, signingKeys), /approved digest/);
+  const verifier = new MetadataVerifier(roots);
+  verifier.acceptTrust(publication.trust, now);
+  const record = publication.records[0]!;
+  assert.throws(() => verifier.verify(changed.records[0]!.payload,
+    { statement: record.statement, signature: record.signature }, 'token', candidate.scope, now), /digest/);
+  assert.equal((verify(verifier, record).payload as typeof payload & { logoUrl: string }).logoUrl, url('a'.repeat(40)));
+});
+
 test('wrong roots, unknown delegates and cross-role use fail closed', () => {
   assert.throws(() => new MetadataVerifier([]).acceptTrust(trust(), now), /root/);
   const verifier = new MetadataVerifier(roots);

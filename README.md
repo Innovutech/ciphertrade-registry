@@ -26,3 +26,20 @@ the last approved catalog without importing upstream changes. Both use the same
 serialized signer. Consumers verify short-lived records using trusted public keys;
 root-authorized publishing keys can have non-expiring authorization.
 Private keys belong in protected signing environments, never in this repository.
+
+### Reviewing a change
+
+The prepare job's Actions summary links to the baseline release and exact source
+comparisons, counts exact logo URL edits and groups descriptor documents,
+and shows before/after field values. Download the `prepared-metadata` artifact
+for `review.md` (readable report), `review.json` (complete values and scopes), and
+`prepared.json` (the snapshot bound to approval).
+
+Every logo URL edit shows the complete old and new URLs and remains subject to
+the existing manual approval gate. Signing and verification continue to bind the
+exact URL. Image content is not compared or used to suppress URL changes.
+Schema-reference edits remain visible and also require approval.
+
+Releases also retain `review-provenance.json` for future source comparisons. It is
+informational and is matched to the verified catalog digest; consumers continue
+to use `publication.json` and `publication.sha256` without a protocol change.

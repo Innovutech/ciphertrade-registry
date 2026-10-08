@@ -55,6 +55,7 @@ jobs:
           path: |
             work/prepared.json
             work/review.json
+            work/review.md
           retention-days: 14
   review:
     needs: prepare
