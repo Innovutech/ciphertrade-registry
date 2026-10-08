@@ -2,7 +2,7 @@
   "1": {
     "name": "Ethereum",
     "explorerTxUrl": "https://etherscan.io/tx/{hash}",
-    "blockscoutUrl": null,
+    "blockscoutUrl": "https://eth.blockscout.com",
     "nativeSymbol": "ETH",
     "rpcUrl": "https://ethereum-rpc.publicnode.com",
     "rpcWsUrl": "wss://ethereum-rpc.publicnode.com",
@@ -29,7 +29,7 @@
   "10": {
     "name": "Optimism",
     "explorerTxUrl": "https://optimistic.etherscan.io/tx/{hash}",
-    "blockscoutUrl": null,
+    "blockscoutUrl": "https://optimism.blockscout.com",
     "nativeSymbol": "ETH",
     "rpcUrl": "https://optimism-rpc.publicnode.com",
     "rpcWsUrl": "wss://optimism-rpc.publicnode.com",
@@ -101,7 +101,7 @@
   "137": {
     "name": "Polygon",
     "explorerTxUrl": "https://polygonscan.com/tx/{hash}",
-    "blockscoutUrl": null,
+    "blockscoutUrl": "https://polygon.blockscout.com",
     "nativeSymbol": "MATIC",
     "rpcUrl": "https://polygon-bor-rpc.publicnode.com",
     "rpcWsUrl": "wss://polygon-bor-rpc.publicnode.com",
@@ -127,7 +127,7 @@
   "8453": {
     "name": "Base",
     "explorerTxUrl": "https://basescan.org/tx/{hash}",
-    "blockscoutUrl": null,
+    "blockscoutUrl": "https://base.blockscout.com",
     "nativeSymbol": "ETH",
     "rpcUrl": "https://base-rpc.publicnode.com",
     "rpcWsUrl": "wss://base-rpc.publicnode.com",
@@ -153,7 +153,7 @@
   "42161": {
     "name": "Arbitrum",
     "explorerTxUrl": "https://arbiscan.io/tx/{hash}",
-    "blockscoutUrl": null,
+    "blockscoutUrl": "https://arbitrum.blockscout.com",
     "nativeSymbol": "ETH",
     "rpcUrl": "https://arbitrum-rpc.publicnode.com",
     "rpcWsUrl": "wss://arbitrum-rpc.publicnode.com",
