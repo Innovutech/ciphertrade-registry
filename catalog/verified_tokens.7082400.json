@@ -1,0 +1,11 @@
+[
+  {
+    "tokenAddress": "0x918084eee42832f08b868Ea64Bba2d41A5F360c6",
+    "private": false,
+    "tokenSymbol": "NIGHT",
+    "name": "NIGHT",
+    "logoUrl": "https://coti.io/icons/midnight.png",
+    "decimals": 6,
+    "verification": "official"
+  }
+]
