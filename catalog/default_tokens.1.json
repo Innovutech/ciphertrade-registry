@@ -13,7 +13,8 @@
     "cgCoinId": "coti-governance-token",
     "logoUrl": "https://assets.coingecko.com/coins/images/32930/large/gCOTI_logo_icon200x200.png?1700669092",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "COTI Governance Token"
   },
   {
     "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",

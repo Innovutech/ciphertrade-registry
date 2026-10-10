@@ -5,7 +5,9 @@
     "tokenSymbol": "p.COTI",
     "cgCoinId": "coti",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private COTI",
+    "logoUrl": "https://coti.io/icons/coti.p.png"
   },
   {
     "tokenAddress": "0xE180548963Fc30329e15BC104d753f82a8C18865",
@@ -24,7 +26,8 @@
     "logoUrl": "https://coti.io/icons/gcoti.png",
     "cgCoinId": "coti-governance-token",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "COTI Treasury Governance Token"
   },
   {
     "tokenAddress": "0xf1feebc4376c68b7003450ae66343ae59ab37d3c",
@@ -32,7 +35,9 @@
     "tokenSymbol": "USDC.e",
     "cgCoinId": "usd-coin",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Bridged USDC (COTI)",
+    "logoUrl": "https://coti.io/icons/USDC.png"
   },
   {
     "tokenAddress": "0x63C9a1D05471fc8d47C83968725Dcfdcb5410392",
@@ -40,7 +45,9 @@
     "tokenSymbol": "p.USDC.e",
     "cgCoinId": "usd-coin",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private Bridged USDC (COTI)",
+    "logoUrl": "https://coti.io/icons/USDC.p.png"
   },
   {
     "tokenAddress": "0xfa6f73446b17a97a56e464256da54ad43c2cbc3e",
@@ -48,7 +55,9 @@
     "tokenSymbol": "USDT",
     "cgCoinId": "tether",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Tether USD",
+    "logoUrl": "https://coti.io/icons/USDT.png"
   },
   {
     "tokenAddress": "0x42107250C3D385ddfABE69ab6de163702040FeB0",
@@ -56,7 +65,9 @@
     "tokenSymbol": "p.USDT",
     "cgCoinId": "tether",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private Tether USD",
+    "logoUrl": "https://coti.io/icons/USDT.p.png"
   },
   {
     "tokenAddress": "0x639acc80569c5fc83c6fbf2319a6cc38bbfe26d1",
@@ -64,7 +75,9 @@
     "tokenSymbol": "wETH",
     "cgCoinId": "ethereum",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "Wrapped Ether",
+    "logoUrl": "https://coti.io/icons/wETH.png"
   },
   {
     "tokenAddress": "0x4727FE8D8450CEBcB142331FAc034Cd8d311f0E5",
@@ -72,7 +85,9 @@
     "tokenSymbol": "p.wETH",
     "cgCoinId": "ethereum",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private Wrapped ETH",
+    "logoUrl": "https://coti.io/icons/wETH.p.png"
   },
   {
     "tokenAddress": "0x8c39b1fd0e6260fdf20652fc436d25026832bfea",
@@ -80,7 +95,9 @@
     "tokenSymbol": "wBTC",
     "cgCoinId": "bitcoin",
     "decimals": 8,
-    "verification": "official"
+    "verification": "official",
+    "name": "Wrapped BTC",
+    "logoUrl": "https://coti.io/icons/wBTC.png"
   },
   {
     "tokenAddress": "0x65449561257ba5756631Aa0d34f07f6457a319be",
@@ -88,7 +105,9 @@
     "tokenSymbol": "p.wBTC",
     "cgCoinId": "bitcoin",
     "decimals": 8,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private Wrapped BTC",
+    "logoUrl": "https://coti.io/icons/wBTC.p.png"
   },
   {
     "tokenAddress": "0xe757ca19d2c237aa52ebb1d2e8e4368eea3eb331",
@@ -96,7 +115,9 @@
     "tokenSymbol": "wADA",
     "cgCoinId": "cardano",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Wrapped ADA",
+    "logoUrl": "https://coti.io/icons/wADA.png"
   },
   {
     "tokenAddress": "0x3a8b49aAC1dAD86aa45a75231FbeC5bEb810e416",
@@ -104,7 +125,9 @@
     "tokenSymbol": "p.wADA",
     "cgCoinId": "cardano",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private Wrapped ADA",
+    "logoUrl": "https://coti.io/icons/wADA.p.png"
   },
   {
     "tokenAddress": "0x9ec8c1459b92e8f19fe160e63e169e7efaaa4359",
@@ -128,7 +151,9 @@
     "tokenSymbol": "NIGHT",
     "cgCoinId": "midnight-3",
     "decimals": 6,
-    "verification": "official"
+    "verification": "official",
+    "name": "NIGHT",
+    "logoUrl": "https://coti.io/icons/midnight.png"
   },
   {
     "tokenAddress": "0x6a1136eb437d2ed6a0916f253ebfcded06e98989",
@@ -159,6 +184,8 @@
     "private": true,
     "tokenSymbol": "p.gCOTI",
     "decimals": 18,
-    "verification": "official"
+    "verification": "official",
+    "name": "Private COTI Treasury Governance Token",
+    "logoUrl": "https://coti.io/icons/gcoti.p.png"
   }
 ]
