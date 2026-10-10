@@ -13,13 +13,7 @@
     "cgTerminalChainId": "eth",
     "twChainId": "ethereum",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 1,
-    "swapRoutes": [
-      "carbon",
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -39,12 +33,7 @@
     "cgChainId": "optimism",
     "cgTerminalChainId": "optimism",
     "feeModel": "op-stack",
-    "supportsSwap": true,
     "displayOrder": 6,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -65,12 +54,7 @@
     "cgTerminalChainId": "bsc",
     "twChainId": "smartchain",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 3,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -89,9 +73,7 @@
     "cgCoinId": "binancecoin",
     "cgChainId": "binance-smart-chain",
     "feeModel": "eip1559",
-    "supportsSwap": false,
     "displayOrder": 11,
-    "swapRoutes": [],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -112,12 +94,7 @@
     "cgTerminalChainId": "polygon_pos",
     "twChainId": "polygon",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 5,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -138,12 +115,7 @@
     "cgTerminalChainId": "base",
     "twChainId": "base",
     "feeModel": "op-stack",
-    "supportsSwap": true,
     "displayOrder": 4,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -164,12 +136,7 @@
     "cgTerminalChainId": "arbitrum",
     "twChainId": "arbitrum",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 7,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -193,9 +160,7 @@
       "supportsPrivacy": true,
       "privacyRealm": "pod-testnet"
     },
-    "supportsSwap": false,
     "displayOrder": 10,
-    "swapRoutes": [],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -215,12 +180,7 @@
     "cgChainId": "avalanche",
     "cgTerminalChainId": "avalanche",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 2,
-    "swapRoutes": [
-      "uniswap",
-      "kyber"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -245,13 +205,7 @@
       "privacyRealm": "coti-mainnet"
     },
     "supportsPrivacy": true,
-    "supportsSwap": true,
     "displayOrder": 0,
-    "swapRoutes": [
-      "carbon",
-      "cipherdex",
-      "wrapped-native"
-    ],
     "appContracts": {
       "chatGCAddress": "0xE5101D33986c91565D2C9f8b49AAF0b8FFeE2243",
       "cipherDataGcAddress": "0xFAC1CB50A9503D06B8d9b717C33339414e71dd86",
@@ -277,9 +231,7 @@
       "podMotherAddress": "0xaEb2271959031B65CbA63302CfF5D970B49d4A7b"
     },
     "supportsPrivacy": true,
-    "supportsSwap": false,
     "displayOrder": 8,
-    "swapRoutes": [],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,
@@ -298,11 +250,7 @@
     "cgCoinId": "ethereum",
     "cgChainId": "ethereum",
     "feeModel": "eip1559",
-    "supportsSwap": true,
     "displayOrder": 9,
-    "swapRoutes": [
-      "uniswap"
-    ],
     "appContracts": {
       "chatGCAddress": null,
       "cipherDataGcAddress": null,

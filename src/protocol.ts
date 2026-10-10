@@ -27,13 +27,13 @@ export type TokenPublication = TokenIdentity & {
   name?: string; logoUrl?: string; spam?: boolean;
   source: string; revision: string;
 };
-export const SWAP_ROUTES = ['carbon', 'cipherdex', 'wrapped-native', 'uniswap', 'kyber'] as const;
-export type SwapRoute = typeof SWAP_ROUTES[number];
 export const NETWORK_CHAIN_SCOPES = ['tokens', 'privacy-bridges', 'token-families', 'trusted-nfts'] as const;
 export type NetworkChainScope = typeof NETWORK_CHAIN_SCOPES[number];
 export type AppContracts = { chatGCAddress: string | null; cipherDataGcAddress: string | null; memoGcAddress: string | null };
 export type PublicNetwork = {
-  name: string; nativeSymbol: string; rpcUrl: string; swapRoutes: SwapRoute[]; appContracts: AppContracts;
+  name: string; nativeSymbol: string; rpcUrl: string; appContracts: AppContracts;
+  // Accepted for older signed publications only; routing is runtime API data.
+  swapRoutes?: string[];
   rpcWsUrl?: string | null; explorerTxUrl?: string | null; blockscoutUrl?: string | null;
   chainLogoUrl?: string | null; logoUrl?: string | null; priceOracle?: string | null;
   cgCoinId?: string | null; cgChainId?: string | null; cgTerminalChainId?: string | null; twChainId?: string | null;
@@ -254,28 +254,29 @@ export function validateMetadataPayload(kind: MetadataKind, scope: string, paylo
 
 export function validatePublicNetworkPayload(input: unknown): asserts input is PublicNetworkPayload {
   const chains = object(input);
-  const optional = ['explorerTxUrl', 'blockscoutUrl', 'rpcWsUrl', 'chainLogoUrl', 'logoUrl', 'priceOracle', 'cgCoinId', 'cgChainId', 'cgTerminalChainId', 'twChainId', 'feeModel', 'privacy', 'supportsPrivacy', 'supportsSwap', 'displayOrder'];
+  const optional = ['explorerTxUrl', 'blockscoutUrl', 'rpcWsUrl', 'chainLogoUrl', 'logoUrl', 'priceOracle', 'cgCoinId', 'cgChainId', 'cgTerminalChainId', 'twChainId', 'feeModel', 'privacy', 'supportsPrivacy', 'supportsSwap', 'swapRoutes', 'displayOrder'];
   if (Object.keys(chains).length > 256) throw new Error('Public chain catalog limit');
   for (const [id, value] of Object.entries(chains)) {
     if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error('Invalid public chain id');
     const row = object(value);
-    fields(row, ['name', 'nativeSymbol', 'rpcUrl', 'swapRoutes', 'appContracts'], optional);
+    fields(row, ['name', 'nativeSymbol', 'rpcUrl', 'appContracts'], optional);
     text(row.name, 128); text(row.nativeSymbol, 32); publicUrl(row.rpcUrl);
     if (row.rpcWsUrl != null) publicUrl(row.rpcWsUrl, 'wss:');
     for (const field of ['explorerTxUrl', 'blockscoutUrl', 'chainLogoUrl', 'logoUrl']) if (row[field] != null) publicUrl(row[field]);
     if (row.explorerTxUrl != null && (typeof row.explorerTxUrl !== 'string' || !row.explorerTxUrl.includes('{hash}') || /\{(?!hash\})/.test(row.explorerTxUrl))) throw new Error('Invalid explorer template');
     for (const field of ['priceOracle', 'cgCoinId', 'cgChainId', 'cgTerminalChainId', 'twChainId']) if (row[field] != null) text(row[field], 128);
-    list(row.swapRoutes, SWAP_ROUTES.length);
-    const routes = new Set<string>();
-    for (const route of row.swapRoutes) {
-      if (typeof route !== 'string' || !SWAP_ROUTES.includes(route as SwapRoute)) throw new Error('Invalid swap route');
-      unique(routes, route);
+    if (row.swapRoutes !== undefined) {
+      list(row.swapRoutes, 256);
+      const routes = new Set<string>();
+      for (const route of row.swapRoutes) {
+        if (typeof route !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(route)) throw new Error('Invalid legacy route identifier');
+        unique(routes, route);
+      }
     }
     const contracts = object(row.appContracts);
     exact(contracts, ['chatGCAddress', 'cipherDataGcAddress', 'memoGcAddress']);
     for (const value of Object.values(contracts)) if (value !== null) address(value);
     for (const field of ['supportsPrivacy', 'supportsSwap']) if (row[field] !== undefined && typeof row[field] !== 'boolean') throw new Error('Invalid chain flag');
-    if (row.supportsSwap !== undefined && row.supportsSwap !== (routes.size > 0)) throw new Error('Swap route authorization mismatch');
     if (row.displayOrder !== undefined && !Number.isSafeInteger(row.displayOrder)) throw new Error('Invalid chain order');
     if (row.feeModel !== undefined && !oneOf(row.feeModel, ['eip1559', 'op-stack', 'coti'])) throw new Error('Invalid fee model');
     if (row.privacy != null) {

@@ -40,7 +40,7 @@ const trust = (payload = policy()) => signTrust(payload, roots[0]!.id, root.priv
 const keys = { 'metadata-configuration': configurationKey.privateKey, 'metadata-tokens': tokenKey.privateKey, 'metadata-descriptors': descriptorKey.privateKey };
 const address = (index: number) => '0x' + index.toString(16).padStart(40, '0');
 const emptyTokens = (chainId = 1): TokenCatalogPayload => ({ chainId, defaults: [], verified: [], tokens: [] });
-const network = (): PublicNetwork => ({ name: 'Fixture', nativeSymbol: 'ETH', rpcUrl: 'https://rpc.example.com', swapRoutes: [],
+const network = (): PublicNetwork => ({ name: 'Fixture', nativeSymbol: 'ETH', rpcUrl: 'https://rpc.example.com',
   appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } });
 const route = (): CotiBridgeRoute => ({ sourceChainId: 2632500, destinationChainId: 1, sourceTokenSymbol: 'COTI', destinationTokenSymbol: 'COTI',
   sourceTokenAddress: ethers.ZeroAddress, destinationTokenAddress: address(1), bridgeRecipientAddress: address(2),
@@ -96,8 +96,8 @@ test('public networks have closed deployment/route schemas and public HTTPS/WSS 
     'https://rpc.example.com/?api_key=credential', 'https://rpc.example.com/#fragment', 'https://bad_host.example']) {
     assert.throws(() => validatePublicNetworkPayload({ '1': { ...network(), rpcUrl } }));
   }
-  for (const extra of [{ rpcUrlFallback: [] }, { providerApiKey: 'test' }, { swapRoutes: ['unknown'] }, { swapRoutes: ['uniswap', 'uniswap'] },
-    { supportsSwap: true }, { appContracts: { ...network().appContracts, memoGcAddress: ethers.ZeroAddress } },
+  for (const extra of [{ rpcUrlFallback: [] }, { providerApiKey: 'test' }, { swapRoutes: ['../unknown'] }, { swapRoutes: ['uniswap', 'uniswap'] },
+    { supportsSwap: 'true' }, { appContracts: { ...network().appContracts, memoGcAddress: ethers.ZeroAddress } },
     { appContracts: { ...network().appContracts, spender: address(1) } }, { appContracts: {} },
     { explorerTxUrl: 'http://scan.example.com/tx/{hash}' }, { explorerTxUrl: 'https://scan.example.com/tx/{address}' },
     { blockscoutUrl: 'https://127.0.0.1' }, { chainLogoUrl: 'https://user:password@images.example.com/logo.png' }, { rpcWsUrl: 'ws://rpc.example.com' },
@@ -126,6 +126,14 @@ test('curated catalogs retain nulls, unknown decimals and market references with
     assert.equal(records.some(record => record.kind === 'token'), false);
     assert.equal(records.filter(record => record.kind === 'classification').length, 1);
   });
+});
+
+test('old routing fields remain readable but cannot re-enter a new publication', async () => {
+  validatePublicNetworkPayload({ '1': { ...network(), swapRoutes: ['future-provider'], supportsSwap: true } });
+  for (const fields of [{ swapRoutes: ['carbon'] }, { supportsSwap: true }]) {
+    await assert.rejects(importConfigurationSources({ curatedDirectory: catalog,
+      networks: { '1': { ...network(), ...fields } }, domains: { patterns: [] } }), /belongs to the API/);
+  }
 });
 
 test('curated token fields, decimals, duplicates and references reject malformed authority', () => {
@@ -227,7 +235,8 @@ test('every signed network gets all four scopes, including authoritative empty r
   assert.deepEqual(records.find(row => row.scope === 'trusted-nfts:1')!.payload, { chainId: 1, nfts: [] });
   const coti = records.find(row => row.scope === 'coti-bridge-routes')!.payload as { routes: CotiBridgeRoute[] };
   assert.equal(coti.routes.filter(row => row.enabled === false).length, 2);
-  assert.deepEqual(chains['2632500']!.swapRoutes, ['carbon', 'cipherdex', 'wrapped-native']);
+  assert.equal(Object.hasOwn(chains['2632500']!, 'swapRoutes'), false);
+  assert.equal(Object.hasOwn(chains['2632500']!, 'supportsSwap'), false);
   assert.equal(chains['2632500']!.appContracts.memoGcAddress, '0x817e3Fd031E3f964c2AEe6B3999365a979C8BB85');
   assert.equal((records.find(row => row.scope === 'tokens:2632500')!.payload as TokenCatalogPayload).defaults.some(row => row.tokenSymbol === 'p.gCOTI'), true);
 });
