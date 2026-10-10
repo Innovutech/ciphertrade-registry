@@ -84,6 +84,19 @@ const HASH = /^0x[0-9a-f]{64}$/;
 const TEXT = /^[^\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]+$/u;
 const frozenValues = new WeakSet<object>();
 const frozenDigests = new WeakMap<object, string>();
+const addressValidity = new Map<string, boolean>();
+export type MetadataCrypto = {
+  keccak256(data: Uint8Array): Promise<string>;
+  recoverPublicKey(digest: string, signature: string): Promise<string>;
+};
+type SignatureProof = { type: 'trust' | 'record'; signature: string; publicKey: string };
+
+async function prepareDigest(value: object, crypto: MetadataCrypto): Promise<void> {
+  if (frozenDigests.has(value)) return;
+  const digest = await crypto.keccak256(ethers.toUtf8Bytes(canonicalMetadata(value)));
+  if (!HASH.test(digest)) throw new Error('Invalid native metadata digest');
+  frozenDigests.set(value, digest);
+}
 
 export function canonicalMetadata(value: unknown): string {
   let nodes = 0;
@@ -198,8 +211,10 @@ function checkTrustTime(payload: { schema: unknown; issuedAt: unknown; expiresAt
     if (payload.issuedAt > now + 60000) throw new Error('Metadata outside validity period');
   } else checkTime(payload.issuedAt, payload.expiresAt, 90 * DAY, now);
 }
-function verifySignature(type: 'trust' | 'record', payload: unknown, signature: string, publicKey: string): void {
+function verifySignature(type: 'trust' | 'record', payload: unknown, signature: string, publicKey: string, proofs?: WeakMap<object, SignatureProof>): void {
   if (!/^0x[0-9a-fA-F]{128}$/.test(signature)) throw new Error('Invalid metadata signature');
+  const proof = payload && typeof payload === 'object' ? proofs?.get(payload) : null;
+  if (proof?.type === type && proof.signature === signature && proof.publicKey === publicKey) return;
   const expected = ethers.SigningKey.computePublicKey(publicKey, true);
   const recovered = ethers.SigningKey.computePublicKey(ethers.SigningKey.recoverPublicKey(signatureDigest(type, payload), signature), true);
   if (recovered !== expected) throw new Error('Metadata signature mismatch');
@@ -207,7 +222,14 @@ function verifySignature(type: 'trust' | 'record', payload: unknown, signature: 
 
 export function tokenScope(chainId: number, address: string): string {
   positive(chainId);
-  if (!ethers.isAddress(address)) throw new Error('Invalid token address');
+  if (typeof address !== 'string' || address.length > 128) throw new Error('Invalid token address');
+  let valid = addressValidity.get(address);
+  if (valid === undefined) {
+    valid = ethers.isAddress(address);
+    addressValidity.set(address, valid);
+    if (addressValidity.size > 2048) addressValidity.delete(addressValidity.keys().next().value!);
+  }
+  if (!valid) throw new Error('Invalid token address');
   return `${chainId}:${address.toLowerCase()}`;
 }
 export function descriptorScope(chainId: number, address: string, selector: string): string {
@@ -482,8 +504,11 @@ export class MetadataVerifier {
   private readonly payloads = new Map<string, unknown>();
   private readonly heads = new Map<string, Checkpoint>();
   private readonly authenticatedRecords = new WeakMap<SignedRecord, SignedTrust>();
+  private readonly signatureProofs = new WeakMap<object, SignatureProof>();
+  private readonly crypto?: MetadataCrypto;
 
-  constructor(roots: readonly RootKey[], checkpoint: Checkpoint | null = null) {
+  constructor(roots: readonly RootKey[], checkpoint: Checkpoint | null = null, crypto?: MetadataCrypto) {
+    this.crypto = crypto;
     this.roots = freezeMetadata(JSON.parse(canonicalMetadata(roots)) as RootKey[]);
     this.checkpoint = checkpoint;
   }
@@ -491,6 +516,52 @@ export class MetadataVerifier {
   get trustHash(): string { return this.trust ? metadataDigest(this.trust) : metadataDigest(this.roots); }
   get currentTrust(): SignedTrust | null { return this.trust; }
   get trustCheckpoint(): Checkpoint | null { return this.checkpoint; }
+
+  isPrepared(record: SignedRecord): boolean {
+    return this.trust !== null && this.authenticatedRecords.get(record) === this.trust;
+  }
+
+  private async prepareSignature(type: 'trust' | 'record', payload: object, signature: string, publicKey: string): Promise<void> {
+    if (!this.crypto) return;
+    if (!/^0x[0-9a-fA-F]{128}$/.test(signature)) throw new Error('Invalid metadata signature');
+    const digest = await this.crypto.keccak256(ethers.toUtf8Bytes(`${DOMAIN}${type}\n${canonicalMetadata(payload)}`));
+    if (!HASH.test(digest)) throw new Error('Invalid native metadata digest');
+    const recovered = await this.crypto.recoverPublicKey(digest, signature);
+    const expected = ethers.SigningKey.computePublicKey(publicKey, true);
+    if (recovered.toLowerCase() !== expected.toLowerCase()) throw new Error('Metadata signature mismatch');
+    this.signatureProofs.set(payload, { type, signature, publicKey });
+  }
+
+  async acceptTrustAsync(input: unknown, now?: number): Promise<SignedTrust> {
+    if (!this.crypto) return this.acceptTrust(input, now);
+    const snapshot = freezeMetadata(JSON.parse(canonicalMetadata(input)) as SignedTrust);
+    const wrapper = object(snapshot);
+    const payload = object(wrapper.payload);
+    const root = this.roots.find(key => key.id === wrapper.rootId);
+    if (!root || typeof wrapper.signature !== 'string') throw new Error('Unknown trust root');
+    await prepareDigest(snapshot, this.crypto);
+    if (this.trust && metadataDigest(snapshot) === metadataDigest(this.trust)) return this.acceptTrust(snapshot, now);
+    await prepareDigest(payload, this.crypto);
+    await this.prepareSignature('trust', payload, wrapper.signature, root.publicKey);
+    // All time, schema and rollback checks still run after asynchronous work.
+    return this.acceptTrust(snapshot, now);
+  }
+
+  async verifyRecordAsync<T>(input: SignedRecord<T>, kind: MetadataKind, scope: string): Promise<SignedRecord<T>> {
+    if (!this.crypto || this.isPrepared(input)) return this.verifyRecord(input, kind, scope);
+    const payload = freezeMetadata(JSON.parse(canonicalMetadata(input.payload)) as T);
+    const evidence = freezeMetadata(JSON.parse(canonicalMetadata({ statement: input.statement, signature: input.signature })) as Evidence);
+    const trust = this.trust;
+    const key = this.assertRecordAuthority(evidence.statement, kind, scope, Date.now());
+    validateMetadataPayload(kind, scope, payload);
+    if (payload && typeof payload === 'object') await prepareDigest(payload, this.crypto);
+    await prepareDigest(evidence.statement, this.crypto);
+    if (!this.memo.has(`${metadataDigest(evidence.statement)}:${evidence.signature}`)) {
+      await this.prepareSignature('record', evidence.statement, evidence.signature, key.publicKey);
+    }
+    if (this.trust !== trust) throw new Error('Metadata authority changed during verification');
+    return this.verify(payload, evidence, kind, scope);
+  }
 
   acceptTrust(input: unknown, now = Date.now()): SignedTrust {
     const inputDigest = metadataDigest(input);
@@ -527,10 +598,12 @@ export class MetadataVerifier {
     }
     const root = this.roots.find(key => key.id === wrapper.rootId);
     if (!root || typeof wrapper.signature !== 'string') throw new Error('Unknown trust root');
-    verifySignature('trust', payload, wrapper.signature, root.publicKey);
+    verifySignature('trust', payload, wrapper.signature, root.publicKey, this.signatureProofs);
     const digest = metadataDigest(payload);
     if (this.checkpoint && (payload.sequence < this.checkpoint.sequence || (payload.sequence === this.checkpoint.sequence && digest !== this.checkpoint.digest))) throw new Error('Trust rollback or equivocation');
     const clone = freezeMetadata(JSON.parse(canonicalMetadata(input)) as SignedTrust);
+    frozenDigests.set(clone, inputDigest);
+    frozenDigests.set(clone.payload, digest);
     if (this.trustHash !== metadataDigest(clone)) this.memo.clear();
     this.trust = clone;
     this.checkpoint = { sequence: payload.sequence, digest };
@@ -557,10 +630,11 @@ export class MetadataVerifier {
     const cached = this.memo.get(memoKey);
     if (cached) return cached as SignedRecord<T>;
     if (typeof envelope.signature !== 'string') throw new Error('Invalid signature');
-    verifySignature('record', statement, envelope.signature, key.publicKey);
+    verifySignature('record', statement, envelope.signature, key.publicKey, this.signatureProofs);
     let frozenPayload = this.payloads.get(digest);
     if (frozenPayload === undefined) {
       frozenPayload = freezeMetadata(JSON.parse(canonicalMetadata(payload)) as unknown);
+      if (frozenPayload && typeof frozenPayload === 'object') frozenDigests.set(frozenPayload, digest);
       this.payloads.set(digest, frozenPayload);
       while (this.payloads.size > 128) this.payloads.delete(this.payloads.keys().next().value!);
     }
