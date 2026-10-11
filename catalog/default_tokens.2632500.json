@@ -24,7 +24,6 @@
     "private": false,
     "tokenSymbol": "gCOTI",
     "logoUrl": "https://coti.io/icons/gcoti.png",
-    "cgCoinId": "coti-governance-token",
     "decimals": 18,
     "verification": "official",
     "name": "COTI Treasury Governance Token"
