@@ -21,6 +21,9 @@ export type Statement = {
 };
 export type Evidence = { statement: Statement; signature: string };
 export type SignedRecord<T = unknown> = Evidence & { payload: T };
+// Receipts for verifier-owned app-private storage, never for network/import input.
+export type AcceptedTrust = { trust: SignedTrust; digest: string; envelopeDigest: string; rootPublicKey: string };
+export type AcceptedRecord<T = unknown> = { record: SignedRecord<T>; statementDigest: string; publicKey: string };
 export type Checkpoint = { sequence: number; digest: string };
 export type TokenIdentity = { chainId: number; address: string; symbol: string; decimals: number };
 export type TokenPublication = TokenIdentity & {
@@ -505,6 +508,7 @@ export class MetadataVerifier {
   private readonly heads = new Map<string, Checkpoint>();
   private readonly authenticatedRecords = new WeakMap<SignedRecord, SignedTrust>();
   private readonly signatureProofs = new WeakMap<object, SignatureProof>();
+  private readonly restoredTrustPayloads = new WeakSet<object>();
   private readonly crypto?: MetadataCrypto;
 
   constructor(roots: readonly RootKey[], checkpoint: Checkpoint | null = null, crypto?: MetadataCrypto) {
@@ -519,6 +523,45 @@ export class MetadataVerifier {
 
   isPrepared(record: SignedRecord): boolean {
     return this.trust !== null && this.authenticatedRecords.get(record) === this.trust;
+  }
+
+  exportAcceptedTrust(): AcceptedTrust {
+    if (!this.trust || !this.checkpoint) throw new Error('No authenticated trust policy');
+    return { trust: this.trust, digest: this.checkpoint.digest, envelopeDigest: metadataDigest(this.trust),
+      rootPublicKey: this.roots.find(key => key.id === this.trust!.rootId)!.publicKey };
+  }
+
+  exportAcceptedRecord<T>(record: SignedRecord<T>): AcceptedRecord<T> {
+    if (!this.isPrepared(record)) throw new Error('Record is not authenticated');
+    const key = this.assertRecordAuthority(record.statement, record.statement.kind, record.statement.scope, Date.now());
+    return { record, statementDigest: metadataDigest(record.statement), publicKey: key.publicKey };
+  }
+
+  /** Only restore receipts written after verification into trusted app-private storage. */
+  restoreAcceptedTrust(receipt: AcceptedTrust, now = Date.now()): SignedTrust {
+    if (!HASH.test(receipt.digest) || !HASH.test(receipt.envelopeDigest)) throw new Error('Invalid trust receipt');
+    const snapshot = freezeMetadata(JSON.parse(canonicalMetadata(receipt.trust)) as SignedTrust);
+    const root = this.roots.find(key => key.id === snapshot.rootId);
+    if (!root || root.publicKey !== receipt.rootPublicKey) throw new Error('Trust root changed');
+    frozenDigests.set(snapshot, receipt.envelopeDigest);
+    frozenDigests.set(snapshot.payload, receipt.digest);
+    this.signatureProofs.set(snapshot.payload, { type: 'trust', signature: snapshot.signature, publicKey: root.publicKey });
+    this.restoredTrustPayloads.add(snapshot.payload);
+    return this.acceptTrust(snapshot, now);
+  }
+
+  /** Authentication is persisted; current authority and immutable ownership are not skipped. */
+  restoreAcceptedRecord<T>(receipt: AcceptedRecord<T>, kind: MetadataKind, scope: string, now = Date.now()): SignedRecord<T> {
+    const record = freezeMetadata(JSON.parse(canonicalMetadata(receipt.record)) as SignedRecord<T>);
+    exact(object(record), ['payload', 'statement', 'signature']);
+    const key = this.validateStatement(record.statement, kind, scope, now);
+    validateMetadataPayload(kind, scope, record.payload);
+    if (key.publicKey !== receipt.publicKey || !HASH.test(receipt.statementDigest)
+      || !HASH.test(record.statement.digest) || !/^0x[0-9a-fA-F]{128}$/.test(record.signature)) throw new Error('Invalid record receipt');
+    frozenDigests.set(record.statement, receipt.statementDigest);
+    if (record.payload && typeof record.payload === 'object') frozenDigests.set(record.payload, record.statement.digest);
+    this.rememberRecord(record, `${receipt.statementDigest}:${record.signature}`);
+    return record;
   }
 
   private async prepareSignature(type: 'trust' | 'record', payload: object, signature: string, publicKey: string): Promise<void> {
@@ -588,7 +631,7 @@ export class MetadataVerifier {
       if (ids.has(key.id)) throw new Error('Duplicate publishing key');
       ids.add(key.id);
       if (typeof key.publicKey !== 'string' || !/^0x(?:[0-9a-fA-F]{66}|[0-9a-fA-F]{130})$/.test(key.publicKey)) throw new Error('Invalid publishing public key');
-      ethers.SigningKey.computePublicKey(key.publicKey, true);
+      if (!this.restoredTrustPayloads.has(payload)) ethers.SigningKey.computePublicKey(key.publicKey, true);
       if (!Array.isArray(key.kinds) || !key.kinds.length || key.kinds.some(kind => !KINDS.includes(kind))) throw new Error('Invalid publishing role');
       positive(key.notBefore);
       if (payload.schema !== 2 || key.expiresAt !== null) {
@@ -604,7 +647,7 @@ export class MetadataVerifier {
     const clone = freezeMetadata(JSON.parse(canonicalMetadata(input)) as SignedTrust);
     frozenDigests.set(clone, inputDigest);
     frozenDigests.set(clone.payload, digest);
-    if (this.trustHash !== metadataDigest(clone)) this.memo.clear();
+    if (!this.trust || metadataDigest(this.trust) !== inputDigest) this.memo.clear();
     this.trust = clone;
     this.checkpoint = { sequence: payload.sequence, digest };
     return clone;
@@ -617,15 +660,11 @@ export class MetadataVerifier {
     checkTrustTime(trust, now);
     const envelope = object(evidence);
     exact(envelope, ['statement', 'signature']);
-    const statement = object(envelope.statement);
-    exact(statement, ['schema', 'kind', 'scope', 'keyId', 'sequence', 'issuedAt', 'expiresAt', 'digest']);
-    if (statement.schema !== 1 || statement.kind !== kind || statement.scope !== scope) throw new Error('Metadata scope mismatch');
-    text(statement.scope, 256); text(statement.keyId, 64); positive(statement.sequence);
-    const key = this.assertRecordAuthority(statement as Statement, kind, scope, now);
+    const statement = envelope.statement as Statement;
+    const key = this.validateStatement(statement, kind, scope, now);
     validateMetadataPayload(kind, scope, payload);
     const digest = metadataDigest(payload);
     if (statement.digest !== digest) throw new Error('Metadata digest revoked, old or mismatched');
-    const scopeKey = `${kind}:${scope}`;
     const memoKey = `${metadataDigest(evidence.statement)}:${evidence.signature}`;
     const cached = this.memo.get(memoKey);
     if (cached) return cached as SignedRecord<T>;
@@ -640,13 +679,26 @@ export class MetadataVerifier {
     }
     const accepted = Object.freeze({ payload: frozenPayload as T,
       statement: freezeMetadata(JSON.parse(canonicalMetadata(statement)) as Statement), signature: envelope.signature });
-    this.authenticatedRecords.set(accepted, this.trust!);
-    this.memo.set(memoKey, accepted);
+    this.rememberRecord(accepted, memoKey);
+    return accepted;
+  }
+
+  private rememberRecord(record: SignedRecord, memoKey: string): void {
+    this.authenticatedRecords.set(record, this.trust!);
+    this.memo.set(memoKey, record);
+    const { kind, scope, sequence, digest } = record.statement;
+    const scopeKey = `${kind}:${scope}`;
     this.heads.delete(scopeKey);
-    this.heads.set(scopeKey, { sequence: statement.sequence, digest });
+    this.heads.set(scopeKey, { sequence, digest });
     while (this.memo.size > 128) this.memo.delete(this.memo.keys().next().value!);
     while (this.heads.size > 4096) this.heads.delete(this.heads.keys().next().value!);
-    return accepted;
+  }
+
+  private validateStatement(input: Statement, kind: MetadataKind, scope: string, now: number): DelegatedKey {
+    const statement = object(input);
+    exact(statement, ['schema', 'kind', 'scope', 'keyId', 'sequence', 'issuedAt', 'expiresAt', 'digest']);
+    text(statement.scope, 256); text(statement.keyId, 64); positive(statement.sequence);
+    return this.assertRecordAuthority(input, kind, scope, now);
   }
 
   verifyRecord<T>(record: SignedRecord<T>, kind: MetadataKind, scope: string, now = Date.now()): SignedRecord<T> {
