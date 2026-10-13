@@ -22,6 +22,7 @@ import {
 } from './publisher.ts';
 import { catalogDigest, finalizePublication, verifyPrevious } from './publicationLifecycle.ts';
 import { publicationReport } from './publicationReport.ts';
+import { emptyConfigurationFixture } from './configurationFixtures.ts';
 
 const now = Date.now();
 const root = new ethers.SigningKey('0x' + '11'.repeat(32));
@@ -52,6 +53,7 @@ const prepared = (records: Candidate[]): PreparedPublication => ({ schema: 1, se
 const catalog = fileURLToPath(new URL('../catalog/', import.meta.url));
 const readCatalog = async (name: string): Promise<unknown> => JSON.parse(await fs.readFile(path.join(catalog, name), 'utf8'));
 const imports = async () => importConfigurationSources({ curatedDirectory: catalog, networks: await readCatalog('public-chains.json'), domains: await readCatalog('domains.json') });
+const domainFixture = (): DomainPayload => ({ patterns: Array.from({ length: 62 }, (_, index) => `host-${index}.example.com`) });
 const evidence = (row: SignedRecord): Evidence => ({ statement: row.statement, signature: row.signature });
 function signedRecord(kind: MetadataKind, scope: string, payload: unknown, sequence = now): SignedRecord {
   const statement = { schema: 1 as const, kind, scope, keyId: 'metadata-configuration', sequence, issuedAt: now, expiresAt: now + 3600000, digest: metadataDigest(payload) };
@@ -61,6 +63,36 @@ function verifier(policyPayload = policy()): MetadataVerifier {
   const result = new MetadataVerifier(roots);
   result.acceptTrust(trust(policyPayload), now);
   return result;
+}
+function assertConfigurationParity(records: Candidate[]): void {
+  const p = prepared(records);
+  const publication = signPublication(p, preparedDigest(p), trust(), roots, keys);
+  assert.equal(publication.records.length, records.length);
+  const v = verifier();
+  for (const row of publication.records) {
+    const source = records.find(candidate => candidate.kind === row.statement.kind && candidate.scope === row.statement.scope);
+    assert.ok(source);
+    assert.deepEqual(v.verify(row.payload, evidence(row), row.statement.kind, row.statement.scope, now).payload, source.payload);
+  }
+  const payloads = new Map(records.map(row => [row.scope, row.payload]));
+  const networks = payloads.get('chains') as PublicNetworkPayload;
+  const chains = Object.entries(networks).map(([chainId, row]) => ({ chainId: Number(chainId), ...row }))
+    .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER) || a.chainId - b.chainId);
+  const expected = new Map<string, unknown>([
+    ['chains.json', chains],
+    ['verified_domains.json', (payloads.get('domains') as DomainPayload).patterns],
+    ['coti_bridge.routes.json', payloads.get('coti-bridge-routes')],
+  ]);
+  for (const { chainId } of chains) {
+    const tokens = payloads.get(`tokens:${chainId}`) as TokenCatalogPayload;
+    expected.set(`default_tokens.${chainId}.json`, tokens.defaults);
+    expected.set(`verified_tokens.${chainId}.json`, tokens.verified);
+    expected.set(`tokens.${chainId}.json`, tokens.tokens);
+    expected.set(`privacy_bridges.${chainId}.json`, (payloads.get(`privacy-bridges:${chainId}`) as { bridges: unknown[] }).bridges);
+    expected.set(`token_families.${chainId}.json`, payloads.get(`token-families:${chainId}`));
+    expected.set(`trusted_nfts.${chainId}.json`, (payloads.get(`trusted-nfts:${chainId}`) as { nfts: unknown[] }).nfts);
+  }
+  assert.deepEqual(configurationFallbacks(records), expected);
 }
 async function temporary(work: (directory: string) => Promise<void>): Promise<void> {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-configuration-test-'));
@@ -114,7 +146,6 @@ test('testnet classification is explicit for new catalogs while historical recor
   await assert.rejects(importConfigurationSources({ curatedDirectory: catalog, networks: { '1': legacy }, domains: [] }), /isTestnet/);
   const networks = await readCatalog('public-chains.json') as PublicNetworkPayload;
   assert(Object.values(networks).every(row => typeof row.isTestnet === 'boolean'));
-  assert.deepEqual(Object.entries(networks).filter(([, row]) => row.isTestnet).map(([id]) => Number(id)).sort((a, b) => a - b), [97, 43113, 7082400, 11155111]);
 });
 
 test('curated catalogs retain nulls, unknown decimals and market references without normalization', async () => {
@@ -231,28 +262,23 @@ test('domain publication uses exact and wildcard-plus-apex host patterns, never 
 test('every signed network gets all four scopes, including authoritative empty records', async () => {
   const records = await imports();
   const chains = records.find(row => row.scope === 'chains')!.payload as PublicNetworkPayload;
-  assert.equal(records.length, Object.keys(chains).length * 4 + 3);
-  assert.equal(records.length, 51);
+  assert.equal(records.length, Object.keys(chains).length * NETWORK_CHAIN_SCOPES.length + 3);
+  assert.deepEqual(chains, await readCatalog('public-chains.json'));
+  assert.deepEqual(records.find(row => row.scope === 'domains')!.payload, await readCatalog('domains.json'));
+  const routes = await fs.readFile(path.join(catalog, 'coti_bridge.routes.json'), 'utf8')
+    .then(JSON.parse, error => { if (error.code === 'ENOENT') return { version: 1, routes: [] }; throw error; });
+  assert.deepEqual(records.find(row => row.scope === 'coti-bridge-routes')!.payload, routes);
   validateConfigurationPublication(records);
   for (const chainId of Object.keys(chains).map(Number)) for (const section of NETWORK_CHAIN_SCOPES) {
     const row = records.find(row => row.scope === networkConfigScope(section, chainId));
     assert.ok(row);
     validateNetworkConfigurationPayload(row.scope, row.payload);
   }
-  assert.deepEqual(records.find(row => row.scope === 'tokens:43113')!.payload, {
-    ...emptyTokens(43113), defaults: JSON.parse(await fs.readFile(new URL('../catalog/default_tokens.43113.json', import.meta.url), 'utf8')),
-  });
-  assert.deepEqual(records.find(row => row.scope === 'trusted-nfts:1')!.payload, { chainId: 1, nfts: [] });
-  const coti = records.find(row => row.scope === 'coti-bridge-routes')!.payload as { routes: CotiBridgeRoute[] };
-  assert.equal(coti.routes.filter(row => row.enabled === false).length, 2);
-  assert.equal(Object.hasOwn(chains['2632500']!, 'swapRoutes'), false);
-  assert.equal(Object.hasOwn(chains['2632500']!, 'supportsSwap'), false);
-  assert.equal(chains['2632500']!.appContracts.memoGcAddress, '0x817e3Fd031E3f964c2AEe6B3999365a979C8BB85');
-  assert.equal((records.find(row => row.scope === 'tokens:2632500')!.payload as TokenCatalogPayload).defaults.some(row => row.tokenSymbol === 'p.gCOTI'), true);
+  assert.ok(Object.values(chains).every(chain => !Object.hasOwn(chain, 'swapRoutes') && !Object.hasOwn(chain, 'supportsSwap')));
 });
 
-test('missing, duplicate, unsupported-chain or unapproved extra configuration is incomplete', async () => {
-  const records = await imports();
+test('missing, duplicate, unsupported-chain or unapproved extra configuration is incomplete', () => {
+  const records = emptyConfigurationFixture();
   for (const scope of ['chains', 'domains', 'coti-bridge-routes', 'tokens:1', 'privacy-bridges:1', 'token-families:1', 'trusted-nfts:1']) {
     assert.throws(() => validateConfigurationPublication(records.filter(row => row.scope !== scope)), /Incomplete/);
   }
@@ -262,6 +288,7 @@ test('missing, duplicate, unsupported-chain or unapproved extra configuration is
   assert.throws(() => validateConfigurationPublication(changed), /unsupported chain/);
   const p = prepared(records.filter(row => row.scope !== 'trusted-nfts:1'));
   assert.throws(() => signPublication(p, preparedDigest(p), trust(), roots, keys), /Incomplete/);
+  assert.throws(() => configurationFallbacks(records.filter(row => row.scope !== 'tokens:1')), /Incomplete/);
 });
 
 test('malformed curated source files fail preparation rather than becoming empty fallbacks', async () => {
@@ -338,19 +365,13 @@ test('large static arrays use implicit body evidence rather than header payloads
   assert.deepEqual(verifier().verify(families, evidence(familyRecord), 'networks', 'token-families:1', now).payload, families);
 });
 
-test('/chains fits the real domain catalog and a 62-pattern catalog beside implicit network proof and three role roots', async () => {
+test('/chains fits the current catalog and synthetic domains beside implicit network proof and three role roots', async () => {
   const records = await imports();
   const p = prepared(records);
   const publication = signPublication(p, preparedDigest(p), trust(), roots, keys);
   const chains = publication.records.find(row => row.statement.scope === 'chains')!;
   const domains = publication.records.find(row => row.statement.kind === 'domains')!;
-  const actual = domains.payload as DomainPayload;
-  assert.equal(actual.patterns.length, 61);
-  assert.equal(ethers.toUtf8Bytes(canonicalMetadata(actual)).length, 1053);
-  const expanded = { patterns: [...actual.patterns, 'bitstamp.net'] };
-  assert.equal(expanded.patterns.length, 62);
-  validateDomainPayload(expanded);
-  const extra = signedRecord('domains', 'domains', expanded);
+  const extra = signedRecord('domains', 'domains', domainFixture());
   for (const domain of [domains, extra]) {
     const header = encodeMetadataHeader([evidence(chains), domain]);
     assert.ok(header.length + encodeMetadataHeader(publication.trust).length <= MAX_HEADER_BYTES);
@@ -365,8 +386,8 @@ test('/chains fits the real domain catalog and a 62-pattern catalog beside impli
   assertConfigurationHeaderBudget(publication.records, publication.trust);
 });
 
-test('configuration publication fails before headers would silently strip the domains record', async () => {
-  const records = await imports();
+test('configuration publication fails before headers would silently strip the domains record', () => {
+  const records = emptyConfigurationFixture().map(row => row.kind === 'domains' ? { ...row, payload: domainFixture() } : row);
   const p = prepared(records);
   const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
   const chain = signed.records.find(row => row.statement.scope === 'chains')!;
@@ -381,8 +402,8 @@ test('configuration publication fails before headers would silently strip the do
   assert.throws(() => signPublication(p, preparedDigest(p), crowded, roots, keys), /response-header budget/);
 });
 
-test('all new scopes sign, compact, report and renew unchanged through the configuration role', async () => {
-  const p = prepared(await imports());
+test('all new scopes sign, compact, report and renew unchanged through the configuration role', () => {
+  const p = prepared(emptyConfigurationFixture());
   const signed = signPublication(p, preparedDigest(p), trust(), roots, keys, ['networks', 'domains', 'classification']);
   assert.equal(signed.records.length, p.records.length);
   assert.ok(signed.records.every(row => row.statement.keyId === 'metadata-configuration'));
@@ -395,72 +416,75 @@ test('all new scopes sign, compact, report and renew unchanged through the confi
   assert.equal(catalogDigest(renewed.records), previous.contentDigest);
   assert.deepEqual(publicationReport(renewed, previous).changed, []);
   assert.deepEqual(publicationReport(renewed, previous).removed, []);
-  const removed = structuredClone(p);
-  removed.records = removed.records.map(row => row.scope === 'tokens:2632500' ? { ...row, payload: emptyTokens(2632500) } : row);
-  assert.deepEqual(publicationReport(removed, previous).changed, ['networks:tokens:2632500']);
-  assert.deepEqual(publicationReport(removed, previous).removed, []);
+  const changed = structuredClone(p);
+  changed.records = changed.records.map(row => row.scope === 'tokens:1' ? { ...row,
+    payload: { ...emptyTokens(), defaults: [{ tokenAddress: address(1), tokenSymbol: 'ADDED', decimals: 6 }] },
+  } : row);
+  assert.deepEqual(publicationReport(changed, previous).changed, ['networks:tokens:1']);
+  assert.deepEqual(publicationReport(changed, previous).removed, []);
   const incomplete = { ...previous, records: previous.records.filter(row => row.statement.scope !== 'tokens:1') };
   assert.throws(() => finalizePublication({ mode: 'renewal', previous: incomplete, roots, trust: trust(), now: now + 86400000 }), /Incomplete/);
 });
 
-test('release fallbacks are generated exclusively from complete publisher configuration', async () => {
-  const records = await imports();
-  const files = configurationFallbacks(records);
-  const publicChains = records.find(row => row.scope === 'chains')!.payload as PublicNetworkPayload;
-  const chains = files.get('chains.json') as (PublicNetwork & { chainId: number })[];
-  assert.equal(chains[0]!.chainId, 2632500);
-  for (const { chainId, ...row } of chains) assert.deepEqual(row, publicChains[String(chainId)]);
-  assert.ok(chains.every(row => !Object.hasOwn(row, 'rpcUrlFallback') && !Object.hasOwn(row, 'explorerApiKey')));
-  assert.deepEqual(files.get('verified_domains.json'), (records.find(row => row.kind === 'domains')!.payload as DomainPayload).patterns);
-  assert.deepEqual(files.get('verified_tokens.1.json'), []);
-  assert.deepEqual(files.get('privacy_bridges.1.json'), []);
-  assert.deepEqual(files.get('trusted_nfts.1.json'), []);
-  assert.deepEqual(files.get('token_families.1.json'), { version: 1, chainId: 1, families: [] });
-  assert.deepEqual(files.get('tokens.2632500.json'), (records.find(row => row.scope === 'tokens:2632500')!.payload as TokenCatalogPayload).tokens);
-  assert.deepEqual(chains[0]!.appContracts, publicChains['2632500']!.appContracts);
-  assert.ok([...files.keys()].every(name => !name.startsWith('bundledMemoConfig.')));
-  const removed = records.map(row => row.scope === 'chains' ? { ...row, payload: { ...publicChains,
-    '2632500': { ...publicChains['2632500']!, appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } },
-  } } : row);
-  const removedChains = configurationFallbacks(removed).get('chains.json') as (PublicNetwork & { chainId: number })[];
-  assert.deepEqual(removedChains.find(chain => chain.chainId === 2632500)!.appContracts,
-    { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null });
-  assert.throws(() => configurationFallbacks(records.filter(row => row.scope !== 'tokens:1')), /Incomplete/);
+test('signed and release configurations preserve all current catalog data', async () => {
+  assertConfigurationParity(await imports());
 });
 
-test('Base receipt RPC and its retained WebSocket are identical in signed and release configurations', async () => {
-  const records = await imports();
-  const p = prepared(records);
-  const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
-  const record = signed.records.find(row => row.statement.scope === 'chains')!;
-  const payload = verifier().verify(record.payload, evidence(record), 'networks', 'chains', now).payload as PublicNetworkPayload;
-  const files = configurationFallbacks(records);
-  const bundled = files.get('chains.json') as (PublicNetwork & { chainId: number })[];
-  for (const config of [payload['8453']!, bundled.find(chain => chain.chainId === 8453)!]) {
-    assert.equal(config.rpcUrl, 'https://mainnet.base.org');
-    assert.equal(config.rpcWsUrl, 'wss://base-rpc.publicnode.com');
-  }
-});
-
-test('published and release explorer fallbacks retain the existing EVM Blockscout URLs', async () => {
-  const expected = {
-    '1': 'https://eth.blockscout.com',
-    '10': 'https://optimism.blockscout.com',
-    '137': 'https://polygon.blockscout.com',
-    '8453': 'https://base.blockscout.com',
-    '42161': 'https://arbitrum.blockscout.com',
-  };
-  const records = await imports();
-  const p = prepared(records);
-  const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
-  const record = signed.records.find(row => row.statement.scope === 'chains')!;
-  const payload = verifier().verify(record.payload, evidence(record), 'networks', 'chains', now).payload as PublicNetworkPayload;
-  const bundled = configurationFallbacks(records).get('chains.json') as (PublicNetwork & { chainId: number })[];
-  for (const [chainId, url] of Object.entries(expected)) {
-    assert.equal(payload[chainId]!.blockscoutUrl, url, `published explorer for ${chainId}`);
-    assert.equal(bundled.find(chain => chain.chainId === Number(chainId))!.blockscoutUrl, url, `release explorer for ${chainId}`);
-  }
-  const altered = structuredClone(payload);
-  altered['1']!.blockscoutUrl = 'https://unapproved.example.com';
-  assert.throws(() => verifier().verify(altered, evidence(record), 'networks', 'chains', now), /digest/);
+test('valid catalog changes need no provider, contract, membership or list-content pins', async () => {
+  await temporary(async directory => {
+    const snapshots = [[2632500, 101, 303], [2632500, 101, 505], [505]];
+    for (const [index, chainIds] of snapshots.entries()) {
+      const populated = index === 1;
+      const networks: PublicNetworkPayload = Object.fromEntries(chainIds.map((chainId, offset) => [String(chainId), {
+        ...network(), name: `Fixture ${index}-${chainId}`, rpcUrl: `https://rpc-${index}-${chainId}.example.com`,
+        isTestnet: (index + offset) % 2 === 1, displayOrder: chainIds.length - offset,
+        ...(index < 2 ? { rpcWsUrl: `wss://ws-${index}-${chainId}.example.com`, blockscoutUrl: `https://explorer-${index}-${chainId}.example.com` } : {}),
+        appContracts: index < 2 ? { chatGCAddress: address(100 + index), cipherDataGcAddress: address(200 + index), memoGcAddress: address(300 + index) } : network().appContracts,
+      }]));
+      const domains = { patterns: Array.from({ length: index }, (_, offset) => `fixture-${index}-${offset}.example.com`) };
+      const routes = { version: 2, routes: index < 2 ? [{ ...route(), destinationChainId: 101, enabled: populated }] : [] };
+      await fs.writeFile(path.join(directory, 'coti_bridge.routes.json'), JSON.stringify(routes));
+      const expected: Candidate[] = [
+        { kind: 'networks', scope: 'chains', payload: networks },
+        { kind: 'domains', scope: 'domains', payload: domains },
+        { kind: 'networks', scope: 'coti-bridge-routes', payload: routes },
+      ];
+      for (const chainId of chainIds) {
+        const tokens = {
+          chainId,
+          defaults: populated ? [{ tokenAddress: address(10), tokenSymbol: 'DEFAULT', decimals: 6 }] : [],
+          verified: populated ? [{ tokenAddress: address(11), tokenSymbol: 'VERIFIED', decimals: 18 }] : [],
+          tokens: populated ? [{ tokenAddress: address(12), tokenSymbol: 'OTHER', decimals: null }] : [],
+        };
+        const bridges = populated ? [{ bridgeAddress: address(20), bridgeType: 'erc20', publicTokenAddress: address(21),
+          privateTokenAddress: address(22), default: true, verified: true, sortOrder: 0 }] : [];
+        const families = { version: 1, chainId, families: populated ? [family()] : [] };
+        const nfts = populated ? [{ contractAddress: address(30), tokenId: '1' }] : [];
+        for (const [filename, payload] of [
+          [`default_tokens.${chainId}.json`, tokens.defaults], [`verified_tokens.${chainId}.json`, tokens.verified],
+          [`tokens.${chainId}.json`, tokens.tokens], [`privacy_bridges.${chainId}.json`, bridges],
+          [`token_families.${chainId}.json`, families], [`trusted_nfts.${chainId}.json`, nfts],
+        ] as [string, unknown][]) await fs.writeFile(path.join(directory, filename), JSON.stringify(payload));
+        expected.push(
+          { kind: 'networks', scope: `tokens:${chainId}`, payload: tokens },
+          { kind: 'networks', scope: `privacy-bridges:${chainId}`, payload: { chainId, bridges } },
+          { kind: 'networks', scope: `token-families:${chainId}`, payload: families },
+          { kind: 'networks', scope: `trusted-nfts:${chainId}`, payload: { chainId, nfts } },
+        );
+      }
+      const records = await importConfigurationSources({ curatedDirectory: directory, networks, domains });
+      assert.deepEqual(new Map(records.map(row => [row.scope, row.payload])), new Map(expected.map(row => [row.scope, row.payload])));
+      assertConfigurationParity(records);
+      const bundled = configurationFallbacks(records).get('chains.json') as (PublicNetwork & { chainId: number })[];
+      assert.deepEqual(bundled.map(chain => chain.chainId), [...chainIds].reverse());
+      if (index === 0) {
+        const p = prepared(records);
+        const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
+        const row = signed.records.find(record => record.statement.scope === 'chains')!;
+        const altered = structuredClone(networks);
+        altered[String(chainIds[0])]!.blockscoutUrl = 'https://altered.example.com';
+        assert.throws(() => verifier().verify(altered, evidence(row), 'networks', 'chains', now), /digest/);
+      }
+    }
+  });
 });
