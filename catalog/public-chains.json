@@ -112,7 +112,7 @@
     "explorerTxUrl": "https://basescan.org/tx/{hash}",
     "blockscoutUrl": "https://base.blockscout.com",
     "nativeSymbol": "ETH",
-    "rpcUrl": "https://base-rpc.publicnode.com",
+    "rpcUrl": "https://mainnet.base.org",
     "rpcWsUrl": "wss://base-rpc.publicnode.com",
     "chainLogoUrl": "https://assets.coingecko.com/asset_platforms/images/131/small/base.png?1759905869",
     "logoUrl": "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
