@@ -60,6 +60,7 @@ export function applyClassificationRemovals(payload: TokenCatalogPayload, remova
 export async function importConfigurationSources(options: { curatedDirectory: string; networks: unknown; domains: unknown }): Promise<Candidate[]> {
   validatePublicNetworkPayload(options.networks);
   for (const chain of Object.values(options.networks)) {
+    if (typeof chain.isTestnet !== 'boolean') throw new Error('Curated networks require explicit isTestnet classification');
     if (Object.hasOwn(chain, 'swapRoutes') || Object.hasOwn(chain, 'supportsSwap')) throw new Error('Runtime swap routing belongs to the API, not the publication');
   }
   validateDomainPayload(options.domains);

@@ -27,6 +27,11 @@ serialized signer. Consumers verify short-lived records using trusted public key
 root-authorized publishing keys can have non-expiring authorization.
 Private keys belong in protected signing environments, never in this repository.
 
+Every curated public network must declare boolean `isTestnet`, including `false`
+for mainnets. Historical records without it remain verifiable; new preparation
+requires explicit classification. Deploy updated consumers before publishing a
+catalog with a new field, since older consumers reject unknown network fields.
+
 ### Reviewing a change
 
 The prepare job's Actions summary links to the baseline release and exact source
