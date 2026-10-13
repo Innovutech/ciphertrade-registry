@@ -23,11 +23,6 @@ export function configurationFallbacks(records: readonly Candidate[]): Map<strin
     files.set(`privacy_bridges.${chain.chainId}.json`, (payloads.get(`networks:privacy-bridges:${chain.chainId}`) as PrivacyBridgesPayload).bridges);
     files.set(`token_families.${chain.chainId}.json`, payloads.get(`networks:token-families:${chain.chainId}`));
     files.set(`trusted_nfts.${chain.chainId}.json`, (payloads.get(`networks:trusted-nfts:${chain.chainId}`) as TrustedNftsPayload).nfts);
-    files.set(`bundledMemoConfig.${chain.chainId}.json`, {
-      walletAddress: '', chainId: chain.chainId, rpcUrl: chain.rpcUrl, rpcWsUrl: chain.rpcWsUrl ?? null,
-      nativeSymbol: chain.nativeSymbol, ...chain.appContracts, chatFeeWei: null, memoFeeWei: null,
-      explorerTxUrl: chain.explorerTxUrl ?? null, chainName: chain.name,
-    });
   }
   return files;
 }

@@ -417,15 +417,29 @@ test('release fallbacks are generated exclusively from complete publisher config
   assert.deepEqual(files.get('trusted_nfts.1.json'), []);
   assert.deepEqual(files.get('token_families.1.json'), { version: 1, chainId: 1, families: [] });
   assert.deepEqual(files.get('tokens.2632500.json'), (records.find(row => row.scope === 'tokens:2632500')!.payload as TokenCatalogPayload).tokens);
-  const memo = files.get('bundledMemoConfig.2632500.json') as { memoGcAddress: string; chatFeeWei: null; memoFeeWei: null };
-  assert.equal(memo.memoGcAddress, publicChains['2632500']!.appContracts.memoGcAddress);
-  assert.equal(memo.chatFeeWei, null);
-  assert.equal(memo.memoFeeWei, null);
+  assert.deepEqual(chains[0]!.appContracts, publicChains['2632500']!.appContracts);
+  assert.ok([...files.keys()].every(name => !name.startsWith('bundledMemoConfig.')));
   const removed = records.map(row => row.scope === 'chains' ? { ...row, payload: { ...publicChains,
     '2632500': { ...publicChains['2632500']!, appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } },
   } } : row);
-  assert.equal((configurationFallbacks(removed).get('bundledMemoConfig.2632500.json') as { memoGcAddress: null }).memoGcAddress, null);
+  const removedChains = configurationFallbacks(removed).get('chains.json') as (PublicNetwork & { chainId: number })[];
+  assert.deepEqual(removedChains.find(chain => chain.chainId === 2632500)!.appContracts,
+    { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null });
   assert.throws(() => configurationFallbacks(records.filter(row => row.scope !== 'tokens:1')), /Incomplete/);
+});
+
+test('Base receipt RPC and its retained WebSocket are identical in signed and release configurations', async () => {
+  const records = await imports();
+  const p = prepared(records);
+  const signed = signPublication(p, preparedDigest(p), trust(), roots, keys);
+  const record = signed.records.find(row => row.statement.scope === 'chains')!;
+  const payload = verifier().verify(record.payload, evidence(record), 'networks', 'chains', now).payload as PublicNetworkPayload;
+  const files = configurationFallbacks(records);
+  const bundled = files.get('chains.json') as (PublicNetwork & { chainId: number })[];
+  for (const config of [payload['8453']!, bundled.find(chain => chain.chainId === 8453)!]) {
+    assert.equal(config.rpcUrl, 'https://mainnet.base.org');
+    assert.equal(config.rpcWsUrl, 'wss://base-rpc.publicnode.com');
+  }
 });
 
 test('published and release explorer fallbacks retain the existing EVM Blockscout URLs', async () => {
