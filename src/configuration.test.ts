@@ -40,7 +40,7 @@ const trust = (payload = policy()) => signTrust(payload, roots[0]!.id, root.priv
 const keys = { 'metadata-configuration': configurationKey.privateKey, 'metadata-tokens': tokenKey.privateKey, 'metadata-descriptors': descriptorKey.privateKey };
 const address = (index: number) => '0x' + index.toString(16).padStart(40, '0');
 const emptyTokens = (chainId = 1): TokenCatalogPayload => ({ chainId, defaults: [], verified: [], tokens: [] });
-const network = (): PublicNetwork => ({ name: 'Fixture', nativeSymbol: 'ETH', rpcUrl: 'https://rpc.example.com',
+const network = (): PublicNetwork => ({ name: 'Fixture', nativeSymbol: 'ETH', rpcUrl: 'https://rpc.example.com', isTestnet: false,
   appContracts: { chatGCAddress: null, cipherDataGcAddress: null, memoGcAddress: null } });
 const route = (): CotiBridgeRoute => ({ sourceChainId: 2632500, destinationChainId: 1, sourceTokenSymbol: 'COTI', destinationTokenSymbol: 'COTI',
   sourceTokenAddress: ethers.ZeroAddress, destinationTokenAddress: address(1), bridgeRecipientAddress: address(2),
@@ -105,6 +105,16 @@ test('public networks have closed deployment/route schemas and public HTTPS/WSS 
     assert.throws(() => validatePublicNetworkPayload({ '1': { ...network(), ...extra } }));
   }
   validatePublicNetworkPayload({ '1': { ...network(), swapRoutes: ['uniswap'], supportsSwap: true, rpcWsUrl: 'wss://rpc.example.com', explorerTxUrl: 'https://scan.example.com/tx/{hash}' } });
+});
+
+test('testnet classification is explicit for new catalogs while historical records stay readable', async () => {
+  const legacy = network(); delete legacy.isTestnet;
+  validatePublicNetworkPayload({ '1': legacy });
+  for (const value of ['true', 1, null]) assert.throws(() => validatePublicNetworkPayload({ '1': { ...network(), isTestnet: value } }), /flag/);
+  await assert.rejects(importConfigurationSources({ curatedDirectory: catalog, networks: { '1': legacy }, domains: [] }), /isTestnet/);
+  const networks = await readCatalog('public-chains.json') as PublicNetworkPayload;
+  assert(Object.values(networks).every(row => typeof row.isTestnet === 'boolean'));
+  assert.deepEqual(Object.entries(networks).filter(([, row]) => row.isTestnet).map(([id]) => Number(id)).sort((a, b) => a - b), [97, 43113, 7082400, 11155111]);
 });
 
 test('curated catalogs retain nulls, unknown decimals and market references without normalization', async () => {

@@ -1,6 +1,7 @@
 {
   "1": {
     "name": "Ethereum",
+    "isTestnet": false,
     "explorerTxUrl": "https://etherscan.io/tx/{hash}",
     "blockscoutUrl": "https://eth.blockscout.com",
     "nativeSymbol": "ETH",
@@ -22,6 +23,7 @@
   },
   "10": {
     "name": "Optimism",
+    "isTestnet": false,
     "explorerTxUrl": "https://optimistic.etherscan.io/tx/{hash}",
     "blockscoutUrl": "https://optimism.blockscout.com",
     "nativeSymbol": "ETH",
@@ -42,6 +44,7 @@
   },
   "56": {
     "name": "BSC",
+    "isTestnet": false,
     "explorerTxUrl": "https://bscscan.com/tx/{hash}",
     "blockscoutUrl": null,
     "nativeSymbol": "BNB",
@@ -63,6 +66,7 @@
   },
   "97": {
     "name": "BSC Testnet",
+    "isTestnet": true,
     "explorerTxUrl": "https://bscscan.com/tx/{hash}",
     "blockscoutUrl": null,
     "nativeSymbol": "BNB",
@@ -82,6 +86,7 @@
   },
   "137": {
     "name": "Polygon",
+    "isTestnet": false,
     "explorerTxUrl": "https://polygonscan.com/tx/{hash}",
     "blockscoutUrl": "https://polygon.blockscout.com",
     "nativeSymbol": "MATIC",
@@ -103,6 +108,7 @@
   },
   "8453": {
     "name": "Base",
+    "isTestnet": false,
     "explorerTxUrl": "https://basescan.org/tx/{hash}",
     "blockscoutUrl": "https://base.blockscout.com",
     "nativeSymbol": "ETH",
@@ -124,6 +130,7 @@
   },
   "42161": {
     "name": "Arbitrum",
+    "isTestnet": false,
     "explorerTxUrl": "https://arbiscan.io/tx/{hash}",
     "blockscoutUrl": "https://arbitrum.blockscout.com",
     "nativeSymbol": "ETH",
@@ -145,6 +152,7 @@
   },
   "43113": {
     "name": "Avalanche Fuji Testnet",
+    "isTestnet": true,
     "explorerTxUrl": "https://testnet.snowtrace.io/tx/{hash}",
     "blockscoutUrl": null,
     "nativeSymbol": "AVAX",
@@ -169,6 +177,7 @@
   },
   "43114": {
     "name": "Avalanche C-Chain",
+    "isTestnet": false,
     "explorerTxUrl": "https://explorer.avax.network/c-chain/tx/{hash}",
     "blockscoutUrl": null,
     "nativeSymbol": "AVAX",
@@ -189,6 +198,7 @@
   },
   "2632500": {
     "name": "COTI",
+    "isTestnet": false,
     "explorerTxUrl": "https://mainnet.cotiscan.io/tx/{hash}",
     "blockscoutUrl": "https://mainnet.cotiscan.io",
     "nativeSymbol": "COTI",
@@ -214,6 +224,7 @@
   },
   "7082400": {
     "name": "COTI Testnet",
+    "isTestnet": true,
     "explorerTxUrl": "https://testnet.cotiscan.io/tx/{hash}",
     "blockscoutUrl": "https://testnet.cotiscan.io",
     "nativeSymbol": "COTI",
@@ -240,6 +251,7 @@
   },
   "11155111": {
     "name": "Sepolia",
+    "isTestnet": true,
     "explorerTxUrl": "https://sepolia.etherscan.io/tx/{hash}",
     "blockscoutUrl": null,
     "nativeSymbol": "SepoliaETH",

@@ -34,7 +34,7 @@ export const NETWORK_CHAIN_SCOPES = ['tokens', 'privacy-bridges', 'token-familie
 export type NetworkChainScope = typeof NETWORK_CHAIN_SCOPES[number];
 export type AppContracts = { chatGCAddress: string | null; cipherDataGcAddress: string | null; memoGcAddress: string | null };
 export type PublicNetwork = {
-  name: string; nativeSymbol: string; rpcUrl: string; appContracts: AppContracts;
+  name: string; nativeSymbol: string; rpcUrl: string; appContracts: AppContracts; isTestnet?: boolean;
   // Accepted for older signed publications only; routing is runtime API data.
   swapRoutes?: string[];
   rpcWsUrl?: string | null; explorerTxUrl?: string | null; blockscoutUrl?: string | null;
@@ -279,7 +279,7 @@ export function validateMetadataPayload(kind: MetadataKind, scope: string, paylo
 
 export function validatePublicNetworkPayload(input: unknown): asserts input is PublicNetworkPayload {
   const chains = object(input);
-  const optional = ['explorerTxUrl', 'blockscoutUrl', 'rpcWsUrl', 'chainLogoUrl', 'logoUrl', 'priceOracle', 'cgCoinId', 'cgChainId', 'cgTerminalChainId', 'twChainId', 'feeModel', 'privacy', 'supportsPrivacy', 'supportsSwap', 'swapRoutes', 'displayOrder'];
+  const optional = ['explorerTxUrl', 'blockscoutUrl', 'rpcWsUrl', 'chainLogoUrl', 'logoUrl', 'priceOracle', 'cgCoinId', 'cgChainId', 'cgTerminalChainId', 'twChainId', 'feeModel', 'privacy', 'supportsPrivacy', 'supportsSwap', 'swapRoutes', 'displayOrder', 'isTestnet'];
   if (Object.keys(chains).length > 256) throw new Error('Public chain catalog limit');
   for (const [id, value] of Object.entries(chains)) {
     if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error('Invalid public chain id');
@@ -301,7 +301,7 @@ export function validatePublicNetworkPayload(input: unknown): asserts input is P
     const contracts = object(row.appContracts);
     exact(contracts, ['chatGCAddress', 'cipherDataGcAddress', 'memoGcAddress']);
     for (const value of Object.values(contracts)) if (value !== null) address(value);
-    for (const field of ['supportsPrivacy', 'supportsSwap']) if (row[field] !== undefined && typeof row[field] !== 'boolean') throw new Error('Invalid chain flag');
+    for (const field of ['supportsPrivacy', 'supportsSwap', 'isTestnet']) if (row[field] !== undefined && typeof row[field] !== 'boolean') throw new Error('Invalid chain flag');
     if (row.displayOrder !== undefined && !Number.isSafeInteger(row.displayOrder)) throw new Error('Invalid chain order');
     if (row.feeModel !== undefined && !oneOf(row.feeModel, ['eip1559', 'op-stack', 'coti'])) throw new Error('Invalid fee model');
     if (row.privacy != null) {
