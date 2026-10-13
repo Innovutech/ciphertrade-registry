@@ -19,6 +19,16 @@ npm ci --ignore-scripts
 npm test
 ```
 
+### Configuration tests
+
+The catalog is the source of truth for configurable values. Tests against it
+must validate schemas, completeness, signatures, size limits and faithful
+signed/release output, not pin current RPC providers, explorer URLs, contract
+addresses, network membership, ordering, asset lists or record counts.
+Use isolated synthetic catalogs for specific values and behavioral edge cases,
+including valid additions, replacements and removals. A valid catalog update
+within the protocol's limits must not require matching edits to test constants.
+
 ## Publishing
 
 Catalog changes require reviewer approval. A separate scheduled workflow renews
