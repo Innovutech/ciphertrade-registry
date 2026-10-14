@@ -37,7 +37,9 @@ jobs:
           ref: master
           path: sources/trustwallet
           persist-credentials: false
-          sparse-checkout: blockchains
+          sparse-checkout: |
+            blockchains
+            dapps
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: ethereum/clear-signing-erc7730-registry

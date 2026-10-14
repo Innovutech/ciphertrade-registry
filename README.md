@@ -10,6 +10,29 @@ Signed public configuration, token metadata and ERC-7730 Clear Signing descripto
 Sources include CipherTrade's curated catalog, Trust Wallet assets and the ERC-7730 registry.
 External token metadata does not grant verified status.
 
+## dApp directory
+
+`catalog/dapps.json` is a separate curated directory. Preparation discovers PNG
+logos from the pinned Trust Wallet `dapps/` tree; those entries have hostname-only
+names, no descriptions, and are unverified. Explicit curated fields override
+discovery and can add apps absent from Trust Wallet. `verified: true` is a reviewed
+identity assertion, not a contract audit or a browser security-check bypass.
+
+Each entry has a canonical `host`; optional `name`, `description`, `canonicalUrl`,
+`logoUrl`, `verified`, `enabled`, `domainAliases`, and `searchAliases` customize it.
+Canonical URLs must be HTTPS on that host. Domain aliases explicitly merge
+discovered identities; search aliases are keywords only. Keep disabled entries as
+`enabled: false, verified: false` to suppress upstream rediscovery. Duplicate or
+conflicting identities fail preparation. Invalid external asset names are reported
+and skipped. Curated SVG/PNG logos may use public HTTPS URLs; discovered logo URLs
+are pinned to the exact Trust Wallet source commit.
+
+Records use `domains` / `dapp:<host>` under the existing configuration signing
+role, without changing the `domains` trusted-site pattern scope. They do not belong
+in chain configuration or bundled network files. Publish updated API/schema support
+before introducing these scopes. Existing review, signature expiry, monotonic
+publication versions, and content-preserving renewal apply unchanged.
+
 ## Development
 
 Requires Node.js 24 or later.

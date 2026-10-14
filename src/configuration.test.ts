@@ -403,7 +403,11 @@ test('configuration publication fails before headers would silently strip the do
 });
 
 test('all new scopes sign, compact, report and renew unchanged through the configuration role', () => {
-  const p = prepared(emptyConfigurationFixture());
+  const p = prepared([...emptyConfigurationFixture(), { kind: 'domains', scope: 'dapp:app.example.com', payload: {
+    host: 'app.example.com', name: 'Example dApp', description: null, canonicalUrl: 'https://app.example.com/',
+    domainAliases: [], searchAliases: ['terminal'], logoUrl: 'https://assets.example.com/icon.svg',
+    enabled: true, verified: true, source: 'ciphertrade', revision: 'a'.repeat(40),
+  } }]);
   const signed = signPublication(p, preparedDigest(p), trust(), roots, keys, ['networks', 'domains', 'classification']);
   assert.equal(signed.records.length, p.records.length);
   assert.ok(signed.records.every(row => row.statement.keyId === 'metadata-configuration'));

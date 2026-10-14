@@ -36,7 +36,7 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
     return metadataDigest(value);
   };
   const payload = (kind: string, value: unknown) => {
-    if (kind !== 'token' && kind !== 'asset') return value;
+    if (kind !== 'token' && kind !== 'asset' && !(kind === 'domains' && (value as { host?: unknown })?.host)) return value;
     const { revision: _revision, ...rest } = value as Record<string, unknown>;
     return rest;
   };
@@ -52,7 +52,8 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
     // Preserve the existing approval gate, including every URL/schema edit.
     if (hash(payload(row.kind, prior.payload)) === hash(payload(row.kind, row.payload))) continue;
     changed.push(id);
-    const fields = fieldChanges(prior.payload, row.payload).filter(field => !(['token', 'asset'].includes(row.kind) && field.path === '/revision'));
+    const fields = fieldChanges(prior.payload, row.payload).filter(field => !((['token', 'asset'].includes(row.kind)
+      || (row.kind === 'domains' && row.scope.startsWith('dapp:'))) && field.path === '/revision'));
     let category = 'content';
     if (row.kind === 'token' || row.kind === 'asset') {
       if (fields.some(field => field.path !== '/logoUrl')) summary.tokenDetailsChanged++;

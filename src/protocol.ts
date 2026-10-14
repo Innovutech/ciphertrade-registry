@@ -76,6 +76,11 @@ export type CotiBridgeRoute = {
 };
 export type CotiBridgeRoutesPayload = { version: number; routes: CotiBridgeRoute[] };
 export type DomainPayload = { patterns: string[] };
+export type DappPublication = {
+  host: string; name: string; description: string | null; canonicalUrl: string;
+  domainAliases: string[]; searchAliases: string[]; logoUrl: string | null;
+  enabled: boolean; verified: boolean; source: 'ciphertrade' | 'trustwallet'; revision: string;
+};
 export type NetworkConfigurationPayload = PublicNetworkPayload | TokenCatalogPayload | PrivacyBridgesPayload | TokenFamiliesPayload | TrustedNftsPayload | CotiBridgeRoutesPayload;
 
 const DOMAIN = 'CipherTrade public metadata v1\n';
@@ -239,6 +244,52 @@ export function descriptorScope(chainId: number, address: string, selector: stri
   if (!/^0x[0-9a-f]{8}$/.test(selector)) throw new Error('Invalid selector');
   return `${tokenScope(chainId, address)}:${selector}`;
 }
+export function normalizeDappHost(value: string): string {
+  text(value, 253);
+  if (value.trim() !== value || /[\s/\\:@?#%]/u.test(value)) throw new Error('Invalid dApp host');
+  const host = new URL(`https://${value}`).hostname.toLowerCase().replace(/\.$/, '');
+  if (host.length > 253 || !host.includes('.') || !/[a-z]/.test(host.split('.').at(-1)!)
+    || /(^|\.)(localhost|local|internal|lan|home|invalid|test|onion)$/.test(host)
+    || host.split('.').some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) throw new Error('Invalid dApp host');
+  return host;
+}
+export function dappScope(host: string): string { return `dapp:${normalizeDappHost(host)}`; }
+export function isDappScope(scope: string): boolean { return scope.startsWith('dapp:'); }
+
+export function validateDappPayload(scope: string, input: unknown): asserts input is DappPublication {
+  const row = object(input);
+  exact(row, ['host', 'name', 'description', 'canonicalUrl', 'domainAliases', 'searchAliases', 'logoUrl', 'enabled', 'verified', 'source', 'revision']);
+  text(row.host, 253);
+  if (normalizeDappHost(row.host) !== row.host || dappScope(row.host) !== scope) throw new Error('dApp identity mismatch');
+  text(row.name, 128);
+  if (row.description !== null) text(row.description, 512);
+  if (typeof row.enabled !== 'boolean' || typeof row.verified !== 'boolean'
+    || !oneOf(row.source, ['ciphertrade', 'trustwallet']) || (row.verified && (row.source !== 'ciphertrade' || !row.enabled))) throw new Error('Invalid dApp verification');
+  text(row.revision, 40);
+  if (!/^[a-f0-9]{40}$/.test(row.revision)) throw new Error('Invalid dApp source revision');
+  list(row.domainAliases, 32);
+  const hosts = new Set([row.host]);
+  for (const alias of row.domainAliases) {
+    text(alias, 253);
+    if (normalizeDappHost(alias) !== alias) throw new Error('Invalid dApp domain alias');
+    unique(hosts, alias);
+  }
+  list(row.searchAliases, 32);
+  const terms = new Set<string>();
+  for (const alias of row.searchAliases) { text(alias, 128); unique(terms, alias.toLowerCase()); }
+  publicUrl(row.canonicalUrl);
+  const url = new URL(row.canonicalUrl as string);
+  if (url.port || url.hostname !== row.host || url.href !== row.canonicalUrl) throw new Error('dApp destination mismatch');
+  if (row.logoUrl !== null) {
+    publicUrl(row.logoUrl);
+    const logo = new URL(row.logoUrl as string);
+    if (logo.port || !/\.(png|svg|webp|jpe?g)$/i.test(logo.pathname)) throw new Error('Invalid dApp logo');
+    if (row.source === 'trustwallet' && (logo.hostname !== 'raw.githubusercontent.com'
+      || !logo.pathname.startsWith(`/trustwallet/assets/${row.revision}/dapps/`) || !logo.pathname.endsWith('.png') || logo.search)) throw new Error('Unpinned discovered dApp logo');
+  }
+  if (row.source === 'trustwallet' && (row.name !== row.host || row.description !== null || row.searchAliases.length || row.domainAliases.length
+    || row.canonicalUrl !== `https://${row.host}/`)) throw new Error('Discovery cannot assert curated dApp metadata');
+}
 export function tokenIdentity(value: unknown): TokenIdentity {
   const row = object(value);
   positive(row.chainId);
@@ -272,6 +323,7 @@ export function validateMetadataPayload(kind: MetadataKind, scope: string, paylo
     if (kind === 'asset' && !row.logoUrl) throw new Error('Asset requires a logo URL');
   }
   if (kind === 'domains') {
+    if (isDappScope(scope)) return validateDappPayload(scope, payload);
     if (scope !== 'domains') throw new Error('Invalid domains scope');
     validateDomainPayload(payload);
   }
@@ -464,9 +516,15 @@ export function validateNetworkConfigurationPayload(scope: string, input: unknow
 }
 export function validateConfigurationPublication(records: readonly { kind: MetadataKind; scope: string; payload: unknown }[]): void {
   const configuration = new Map<string, unknown>();
+  const dappHosts = new Set<string>();
   for (const record of records) {
     if (record.kind !== 'networks' && record.kind !== 'domains') continue;
     validateMetadataPayload(record.kind, record.scope, record.payload);
+    if (record.kind === 'domains' && isDappScope(record.scope)) {
+      const dapp = record.payload as DappPublication;
+      for (const host of [dapp.host, ...dapp.domainAliases]) unique(dappHosts, host);
+      continue;
+    }
     const id = `${record.kind}:${record.scope}`;
     if (configuration.has(id)) throw new Error('Duplicate configuration scope');
     configuration.set(id, record.payload);
