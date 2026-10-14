@@ -4,6 +4,7 @@ import { importTokenSources, importDescriptors, preparedDigest, signPublication,
 import type { MetadataKind, RootKey, SignedTrust } from './protocol.ts';
 import { importConfigurationSources } from './configuration.ts';
 import { validatePublicNetworkPayload } from './protocol.ts';
+import { importDappSources } from './dapps.ts';
 
 const [command, configFile, output = 'work/prepared.json'] = process.argv.slice(2);
 if (!configFile || !['prepare', 'sign'].includes(command ?? '')) throw new Error('Usage: node src/cli.ts prepare|sign <config.json> [output.json]');
@@ -17,6 +18,9 @@ if (command === 'prepare') {
   if (!config.networks || !config.domains) throw new Error('Preparation requires complete public configuration');
   validatePublicNetworkPayload(config.networks);
   const records = await importTokenSources({ ...config, chains: config.networks });
+  const dapps = await importDappSources(config);
+  records.push(...dapps.records);
+  if (dapps.skipped.length) console.warn(JSON.stringify({ skippedDappAssets: dapps.skipped }));
   if (config.registryDirectory) records.push(...await importDescriptors(config.registryDirectory));
   records.push(...await importConfigurationSources({ curatedDirectory: config.curatedDirectory, networks: config.networks, domains: config.domains }));
   records.sort((a, b) => `${a.kind}:${a.scope}`.localeCompare(`${b.kind}:${b.scope}`, 'en'));

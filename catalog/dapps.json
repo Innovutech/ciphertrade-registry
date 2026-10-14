@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "host": "bridge.coti.io",
+      "name": "COTI Bridge",
+      "description": "Bridge your tokens across networks seamlessly.",
+      "canonicalUrl": "https://bridge.coti.io/",
+      "logoUrl": "https://ciphertrade.org/coti-flag-dark.svg",
+      "verified": true
+    },
+    {
+      "host": "nexus.hyperlane.xyz",
+      "name": "Hyperlane Bridge",
+      "description": "Cross-chain bridging and transfers via Hyperlane Nexus.",
+      "canonicalUrl": "https://nexus.hyperlane.xyz/",
+      "logoUrl": "https://ciphertrade.org/hyperlane.svg",
+      "verified": true
+    },
+    {
+      "host": "app.chainport.io",
+      "name": "ChainPort Bridge",
+      "description": "Port tokens across chains-cross-chain bridge and liquidity by ChainPort.",
+      "canonicalUrl": "https://app.chainport.io/",
+      "logoUrl": "https://ciphertrade.org/chainport.svg",
+      "verified": true
+    },
+    {
+      "host": "app.houdiniswap.com",
+      "name": "Houdini Swap",
+      "description": "Cross-chain swaps and non-custodial exchange routing.",
+      "canonicalUrl": "https://app.houdiniswap.com/",
+      "logoUrl": "https://ciphertrade.org/houdiniswap-darker-purple-circle-logo.svg",
+      "verified": true
+    },
+    {
+      "host": "coti.carbondefi.xyz",
+      "name": "Carbon DeFi",
+      "description": "Control your strategies on COTI-automated orders, concentrated liquidity, and advanced DEX tooling.",
+      "canonicalUrl": "https://coti.carbondefi.xyz/",
+      "logoUrl": "https://ciphertrade.org/carbondefi.svg",
+      "verified": true
+    },
+    {
+      "host": "app.ciphertrade.org",
+      "name": "CipherTrade DEX",
+      "canonicalUrl": "https://app.ciphertrade.org/",
+      "searchAliases": ["CipherDEX", "COTI DEX"],
+      "logoUrl": "https://ciphertrade.org/ciphertrade-app-icon.svg",
+      "verified": true
+    },
+    {
+      "host": "ciphertools.io",
+      "name": "CipherTools",
+      "canonicalUrl": "https://ciphertools.io/",
+      "searchAliases": ["COTI DEX Analytics", "terminal", "dexscreener", "dextools"],
+      "logoUrl": "https://ciphertrade.org/ciphertrade-app-icon.svg",
+      "verified": true
+    }
+  ]
+}
