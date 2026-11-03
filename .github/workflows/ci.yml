@@ -26,3 +26,4 @@ jobs:
       - run: node --check scripts/latest-publication.mjs
       - run: node --check scripts/publication-review.mjs
       - run: node --check scripts/trust-policy.mjs
+      - run: node --check scripts/approval-notification.mjs

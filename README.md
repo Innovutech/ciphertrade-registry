@@ -67,6 +67,25 @@ catalog with a new field, since older consumers reject unknown network fields.
 
 ### Reviewing a change
 
+After preparation, one GitHub issue assigned to the configured reviewers links to
+the exact batch, source comparisons and before/after report. A new candidate
+updates that issue and posts a fresh mention; publication closes it. Enable GitHub
+and email notifications for participating conversations in your personal settings
+to receive these alerts. Workflow completion notifications alone do not cover a
+job that is still waiting for approval.
+
+New preparations supersede older unsigned preparations and unapproved review jobs.
+Every comparison is against the last published catalog, so still-needed changes
+remain visible in the latest batch. Already approved signing is serialized
+separately and is not cancelled by a newer review request. A failed preparation
+leaves the previous approval request available. Snapshots and reports are retained
+for 35 days, beyond GitHub's 30-day environment approval wait limit.
+
+Merging a catalog edit automatically prepares a batch and requests approval when
+its contents differ from the published catalog. **Publish signed metadata → Run
+workflow** can also prepare a batch manually. Scheduled preparations check upstream
+sources even when the curated catalog has not changed.
+
 The prepare job's Actions summary links to the baseline release and exact source
 comparisons, counts exact logo URL edits and groups descriptor documents,
 and shows before/after field values. Download the `prepared-metadata` artifact

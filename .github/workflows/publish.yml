@@ -1,18 +1,21 @@
 name: Publish signed metadata
 on:
+  push:
+    branches: [main]
+    paths: ['catalog/**']
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * 1,4'
 permissions:
   contents: read
-concurrency:
-  group: metadata-change-review
-  cancel-in-progress: false
 jobs:
   prepare:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: metadata-change-prepare
+      cancel-in-progress: true
     permissions:
       contents: read
       actions: read
@@ -58,16 +61,54 @@ jobs:
             work/prepared.json
             work/review.json
             work/review.md
-          retention-days: 14
-  review:
+          retention-days: 35
+  notify:
     needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    concurrency:
+      group: metadata-approval-notification
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: prepared-metadata
+          path: work
+      - run: node scripts/approval-notification.mjs ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
+  review:
+    needs: [prepare, notify]
     if: needs.prepare.outputs.changed == 'true'
     runs-on: ubuntu-latest
     environment: metadata-review
+    concurrency:
+      group: metadata-change-review-gate
+      cancel-in-progress: true
     steps:
       - run: printf 'Approved snapshot %s\n' "$APPROVED_DIGEST"
         env:
           APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
+  no-changes:
+    needs: [prepare, notify]
+    if: needs.prepare.outputs.changed != 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: metadata-change-review-gate
+      cancel-in-progress: true
+    steps:
+      - run: echo 'No unpublished changes; earlier unapproved review jobs are superseded.'
   publish:
     needs: [prepare, review]
     if: needs.review.result == 'success'
@@ -80,3 +121,27 @@ jobs:
     with:
       mode: changes
       approved-digest: ${{ needs.prepare.outputs.digest }}
+  finish:
+    needs: [prepare, notify, review, publish]
+    if: always() && needs.notify.result == 'success' && needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    concurrency:
+      group: metadata-approval-notification
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.16.0'
+      - run: node scripts/approval-notification.mjs finish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_RESULT: ${{ needs.publish.result }}
+          PUBLICATION_SEQUENCE: ${{ needs.publish.outputs.sequence }}

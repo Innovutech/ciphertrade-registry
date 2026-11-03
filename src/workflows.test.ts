@@ -21,6 +21,14 @@ test('change approval and renewal are independent entry points with one serializ
   assert.match(sign, /environment: metadata-\$\{\{ matrix\.role \}\}/);
   assert.doesNotMatch(sign, /secrets\.METADATA_ROOT_KEY/);
   assert.doesNotMatch(publish + renew, /group: metadata-publication-write/);
+  // Supersession is scoped to unsigned work; it must not cancel a signed writer.
+  assert.doesNotMatch(publish, /^concurrency:/m);
+  assert.match(publish, /group: metadata-change-prepare\r?\n      cancel-in-progress: true/);
+  assert.equal((publish.match(/group: metadata-change-review-gate/g) ?? []).length, 2);
+  assert.match(publish, /needs: \[prepare, notify\]/);
+  assert.match(publish, /node scripts\/approval-notification\.mjs ready/);
+  assert.match(publish, /node scripts\/approval-notification\.mjs finish/);
+  assert.match(publish, /needs\.publish\.outputs\.sequence/);
 });
 
 test('reusable signing explicitly declares its secret without inheriting unrelated secrets', async () => {
