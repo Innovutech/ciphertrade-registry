@@ -64,6 +64,7 @@ jobs:
           retention-days: 35
   notify:
     needs: prepare
+    if: always() && github.ref == 'refs/heads/main' && (needs.prepare.result == 'success' || needs.prepare.result == 'failure')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -80,14 +81,20 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.16.0'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - if: needs.prepare.result == 'success'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: prepared-metadata
           path: work
-      - run: node scripts/approval-notification.mjs ready
+      - if: needs.prepare.result == 'success'
+        run: node scripts/approval-notification.mjs ready
         env:
           GH_TOKEN: ${{ github.token }}
           APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
+      - if: needs.prepare.result == 'failure'
+        run: node scripts/approval-notification.mjs failed
+        env:
+          GH_TOKEN: ${{ github.token }}
   review:
     needs: [prepare, notify]
     if: needs.prepare.outputs.changed == 'true'
@@ -102,7 +109,7 @@ jobs:
           APPROVED_DIGEST: ${{ needs.prepare.outputs.digest }}
   no-changes:
     needs: [prepare, notify]
-    if: needs.prepare.outputs.changed != 'true'
+    if: needs.prepare.outputs.changed == 'false'
     runs-on: ubuntu-latest
     concurrency:
       group: metadata-change-review-gate

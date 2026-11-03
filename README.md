@@ -73,6 +73,8 @@ updates that issue and posts a fresh mention; publication closes it. Enable GitH
 and email notifications for participating conversations in your personal settings
 to receive these alerts. Workflow completion notifications alone do not cover a
 job that is still waiting for approval.
+Preparation failures also alert the reviewers, including failures before a report
+can be created; an earlier valid approval request remains available.
 
 New preparations supersede older unsigned preparations and unapproved review jobs.
 Every comparison is against the last published catalog, so still-needed changes
@@ -96,6 +98,14 @@ Every logo URL edit shows the complete old and new URLs and remains subject to
 the existing manual approval gate. Signing and verification continue to bind the
 exact URL. Image content is not compared or used to suppress URL changes.
 Schema-reference edits remain visible and also require approval.
+
+Descriptor documents are stored once and referenced by digest in prepared and
+signed-role artifacts, as they already are in published releases. Review JSON
+uses `descriptorPayloads` for descriptor additions/removals and `documents` for
+shared field changes; every affected scope remains listed. These references do
+not change approval digests, signed statements, or the public release format.
+Review notes warn when a descriptor reaches 90% of the existing 192 KiB canonical
+record limit. Formatted input files have a separate bounded 1 MiB read allowance.
 
 Releases also retain `review-provenance.json` for future source comparisons. It is
 informational and is matched to the verified catalog digest; consumers continue

@@ -1,4 +1,4 @@
-import { canonicalMetadata, metadataDigest, type SignedRecord } from './protocol.ts';
+import { canonicalMetadata, metadataDigest, MAX_RECORD_BYTES, type SignedRecord } from './protocol.ts';
 import type { PreparedPublication } from './publisher.ts';
 
 export type ReviewContext = {
@@ -43,8 +43,9 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
   const beforeRows = new Map((previous?.records ?? []).map(row => [`${row.statement.kind}:${row.statement.scope}`, row]));
   const afterRows = new Map(prepared.records.map(row => [`${row.kind}:${row.scope}`, row]));
   const added: string[] = [], changed: string[] = [], removed: string[] = [];
-  const changes: { id: string; kind: string; scope: string; category: string; fields: FieldChange[] }[] = [];
-  const documents = new Map<string, { label: string; records: string[]; category: string; fields: FieldChange[] }>();
+  const changes: { id: string; kind: string; scope: string; category: string; fields: FieldChange[]; document?: string }[] = [];
+  const documents = new Map<string, { id: string; label: string; records: string[]; category: string; fields: FieldChange[] }>();
+  const descriptorPayloads: Record<string, unknown> = Object.create(null);
   const summary = { tokenDetailsChanged: 0, logoUrlsChanged: 0, descriptorSchemaRecords: 0, descriptorSchemaDocuments: 0, otherChangedRecords: 0 };
   for (const [id, row] of afterRows) {
     const prior = beforeRows.get(id);
@@ -52,7 +53,8 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
     // Preserve the existing approval gate, including every URL/schema edit.
     if (hash(payload(row.kind, prior.payload)) === hash(payload(row.kind, row.payload))) continue;
     changed.push(id);
-    const fields = fieldChanges(prior.payload, row.payload).filter(field => !((['token', 'asset'].includes(row.kind)
+    const documentKey = row.kind === 'descriptor' ? `${hash(prior.payload)}:${hash(row.payload)}` : undefined;
+    const fields = (documentKey ? documents.get(documentKey)?.fields : undefined) ?? fieldChanges(prior.payload, row.payload).filter(field => !((['token', 'asset'].includes(row.kind)
       || (row.kind === 'domains' && row.scope.startsWith('dapp:'))) && field.path === '/revision'));
     let category = 'content';
     if (row.kind === 'token' || row.kind === 'asset') {
@@ -66,18 +68,18 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
         category = 'schema-reference';
         summary.descriptorSchemaRecords++;
       }
-      const key = `${hash(prior.payload)}:${hash(row.payload)}`;
+      const key = documentKey!;
       let document = documents.get(key);
       if (!document) {
         const data = row.payload as { metadata?: { owner?: string; contractName?: string }; context?: { $id?: string } };
         const label = [data.metadata?.owner, data.metadata?.contractName ?? data.context?.$id].filter(Boolean).join(' — ') || row.scope;
-        document = { label, records: [], category, fields };
+        document = { id: key, label, records: [], category, fields };
         documents.set(key, document);
       }
       document.records.push(id);
     }
     if (category === 'content' && row.kind !== 'token' && row.kind !== 'asset') summary.otherChangedRecords++;
-    changes.push({ id, kind: row.kind, scope: row.scope, category, fields });
+    changes.push({ id, kind: row.kind, scope: row.scope, category, fields: documentKey ? [] : fields, ...(documentKey ? { document: documentKey } : {}) });
   }
   for (const id of beforeRows.keys()) if (!afterRows.has(id)) removed.push(id);
   summary.descriptorSchemaDocuments = [...documents.values()].filter(document => document.category === 'schema-reference').length;
@@ -99,10 +101,27 @@ export function publicationReport(prepared: PreparedPublication, previous?: { re
     .map(row => row.scope));
   const spamConflicts = prepared.records.filter(row => row.kind === 'token'
     && (row.payload as { spam?: boolean }).spam === true && curated.has(row.scope)).map(row => row.scope);
+  const reference = (payload: unknown) => { const digest = hash(payload); descriptorPayloads[digest] = payload; return digest; };
+  const additions = added.map(id => {
+    const row = afterRows.get(id)!;
+    return row.kind === 'descriptor' ? { id, afterRef: reference(row.payload) } : { id, after: row.payload };
+  });
+  const removals = removed.map(id => {
+    const row = beforeRows.get(id)!;
+    return row.statement.kind === 'descriptor' ? { id, beforeRef: reference(row.payload) } : { id, before: row.payload };
+  });
+  const descriptorSizes = new Map<string, number>();
+  for (const row of prepared.records.filter(row => row.kind === 'descriptor')) {
+    const digest = hash(row.payload);
+    if (!descriptorSizes.has(digest)) descriptorSizes.set(digest, Buffer.byteLength(canonicalMetadata(row.payload)));
+  }
+  const capacity = { largestDescriptorBytes: Math.max(0, ...descriptorSizes.values()), recordLimitBytes: MAX_RECORD_BYTES,
+    uniqueDescriptorDocuments: descriptorSizes.size };
+  const notes = [...(context.notes ?? [])];
+  if (capacity.largestDescriptorBytes >= MAX_RECORD_BYTES * 0.9) notes.push(`Descriptor capacity: the largest canonical document uses ${capacity.largestDescriptorBytes} of ${MAX_RECORD_BYTES} bytes. Documents over this per-record limit are rejected; this is separate from total catalog capacity.`);
   return { firstPublication: !previous, sequence: prepared.sequence, sources, added, changed, removed, spamConflicts,
     recordCount: prepared.records.length, baseline, summary, changes, documents: [...documents.values()],
-    additions: added.map(id => ({ id, after: afterRows.get(id)!.payload })),
-    removals: removed.map(id => ({ id, before: beforeRows.get(id)!.payload })), notes: context.notes ?? [] };
+    additions, removals, descriptorPayloads, capacity, notes };
 }
 
 export type PublicationReport = ReturnType<typeof publicationReport>;
@@ -146,8 +165,16 @@ export function renderPublicationReview(report: PublicationReport, digest: strin
   const details = [
     ...report.documents.map(document => ({ label: `${document.label} (${document.records.length} records; ${document.category})`, fields: document.fields })),
     ...report.changes.filter(change => change.kind !== 'descriptor').map(change => ({ label: change.id, fields: change.fields })),
-    ...report.additions.map(change => ({ label: `Added ${change.id}`, fields: [{ path: '/', after: change.after }] })),
-    ...report.removals.map(change => ({ label: `Removed ${change.id}`, fields: [{ path: '/', before: change.before }] })),
+    ...report.additions.filter(change => !change.afterRef).map(change => ({ label: `Added ${change.id}`, fields: [{ path: '/', after: change.after }] })),
+    ...report.removals.filter(change => !change.beforeRef).map(change => ({ label: `Removed ${change.id}`, fields: [{ path: '/', before: change.before }] })),
+    ...Object.entries(report.descriptorPayloads).flatMap(([digest, payload]) => {
+      const added = report.additions.filter(row => row.afterRef === digest).length;
+      const removed = report.removals.filter(row => row.beforeRef === digest).length;
+      return [
+        ...(added ? [{ label: `Added descriptor ${digest.slice(0, 14)} (${added} records)`, fields: [{ path: '/', after: payload }] }] : []),
+        ...(removed ? [{ label: `Removed descriptor ${digest.slice(0, 14)} (${removed} records)`, fields: [{ path: '/', before: payload }] }] : []),
+      ];
+    }),
   ];
   lines.push('', '### Before / after', '');
   const limit = compact ? 20 : details.length;

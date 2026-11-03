@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { catalogDigest } from '../src/publicationLifecycle.ts';
+import { decodePrepared } from '../src/publicationArtifacts.ts';
 
 const MAX_SNAPSHOT = 64 * 1024 * 1024;
 const PROVENANCE = 'review-provenance.json';
@@ -53,7 +54,7 @@ export async function previousReviewSources(previous, release, run = command) {
         const directory = `work/review-baseline/run-${row.databaseId}`;
         await fs.mkdir(directory, { recursive: true });
         run('gh', ['run', 'download', String(row.databaseId), '--name', 'signing-metadata', '--dir', directory]);
-        const prepared = await readJson(`${directory}/prepared.json`);
+        const prepared = decodePrepared(await readJson(`${directory}/prepared.json`));
         if (prepared.schema === 1 && Array.isArray(prepared.records) && prepared.records.length <= 100000
           && validSources(prepared.sources) && catalogDigest(prepared.records) === previous.contentDigest) {
           return { sources: prepared.sources, notes: ['Previous source revisions recovered from a successful run whose signing input matches the verified baseline catalog.'] };

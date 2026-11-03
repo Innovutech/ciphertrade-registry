@@ -48,6 +48,7 @@ function bodyFor(context, report, state) {
     `**Exact logo URL edits:** ${report.summary.logoUrlsChanged}. **Curated spam conflicts:** ${report.spamConflicts.length}.`, '',
     `**Snapshot digest:** \`${digest}\``, ''];
   if (Number.isSafeInteger(baseline) && baseline > 0) lines.push(`Compared with [metadata-${baseline}](https://github.com/${repository}/releases/tag/metadata-${baseline}).`, '');
+  if (report.capacity?.largestDescriptorBytes >= report.capacity?.recordLimitBytes * 0.9) lines.push(`**Descriptor capacity:** ${report.capacity.largestDescriptorBytes} / ${report.capacity.recordLimitBytes} bytes for the largest document. Future growth beyond this per-record bound requires attention.`, '');
   lines.push('Source comparisons:');
   for (const source of report.sources) {
     const repo = source.name === 'curated' ? repository : repositories[source.name];
@@ -118,6 +119,28 @@ export async function finishApproval(api, context, result, reviewers, sequence) 
   return api('PATCH', `issues/${issue.number}`, { body, title: published ? 'Metadata publication: published' : 'Metadata publication needs attention', state: published ? 'closed' : 'open', ...(published ? { state_reason: 'completed' } : {}) });
 }
 
+export async function preparationFailed(api, context, reviewers) {
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(context.repository) || !/^[1-9][0-9]*$/.test(context.runId)
+    || !Number.isSafeInteger(context.runNumber) || context.runNumber < 1 || !reviewers.length
+    || reviewers.some(login => !/^[A-Za-z0-9-]+$/.test(login))) throw new Error('Invalid failure notification context');
+  const issue = await findIssue(api);
+  const old = issue && stateOf(issue);
+  if (old && old.runNumber > context.runNumber) return issue;
+  const alertMarker = `<!-- metadata-preparation-failure ${context.runId} -->`;
+  const url = `https://github.com/${context.repository}/actions/runs/${context.runId}`;
+  const alert = `${alertMarker}\n${reviewers.map(login => `@${login}`).join(' ')} — a metadata preparation failed before approval. [Inspect the failed run](${url}). Any earlier valid approval request remains available; automatic renewals use the last approved catalog.`;
+  if (issue?.state === 'open' && old.phase === 'waiting') {
+    await alertReviewer(api, issue, alertMarker, alert);
+    return issue;
+  }
+  const state = { runId: context.runId, runNumber: context.runNumber, phase: 'preparation-failed' };
+  const body = `${marker}\n<!-- metadata-approval-state ${JSON.stringify(state)} -->\n\n**Status:** Preparation failed; no new batch is ready for approval.\n\n[Inspect the failed preparation](${url}).\n\n${alert}`;
+  if (!issue) return api('POST', 'issues', { title: 'Metadata preparation needs attention', body, assignees: reviewers });
+  const updated = await api('PATCH', `issues/${issue.number}`, { title: 'Metadata preparation needs attention', body: body.replace(`\n\n${alert}`, ''), state: 'open', assignees: reviewers });
+  await alertReviewer(api, updated, alertMarker, alert);
+  return updated;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const repository = process.env.GITHUB_REPOSITORY;
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? '') || !process.env.GH_TOKEN) throw new Error('Missing GitHub notification configuration');
@@ -138,6 +161,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   let issue;
   if (process.argv[2] === 'ready') issue = await notifyApproval(api, context, JSON.parse(await fs.readFile('work/review.json', 'utf8')), reviewers);
   else if (process.argv[2] === 'finish') issue = await finishApproval(api, context, process.env.PUBLICATION_RESULT, reviewers, process.env.PUBLICATION_SEQUENCE);
+  else if (process.argv[2] === 'failed') issue = await preparationFailed(api, context, reviewers);
   else throw new Error('Unknown notification command');
   if (issue) {
     console.log(`Approval issue: ${issue.html_url}`);
