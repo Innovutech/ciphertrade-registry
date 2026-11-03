@@ -173,9 +173,16 @@ export async function importDescriptors(directory: string): Promise<Candidate[]>
 
 export function preparedDigest(prepared: PreparedPublication): string {
   // Catalogs can be large; bind a deterministic list of individually bounded records.
+  const cache = new WeakMap<object, string>();
+  const digest = (payload: unknown) => {
+    if (!payload || typeof payload !== 'object') return metadataDigest(payload);
+    let value = cache.get(payload);
+    if (!value) { value = metadataDigest(payload); cache.set(payload, value); }
+    return value;
+  };
   return ethers.sha256(ethers.toUtf8Bytes(JSON.stringify({
     schema: prepared.schema, sequence: prepared.sequence, issuedAt: prepared.issuedAt, expiresAt: prepared.expiresAt,
-    sources: prepared.sources, records: prepared.records.map(row => ({ kind: row.kind, scope: row.scope, digest: metadataDigest(row.payload) })),
+    sources: prepared.sources, records: prepared.records.map(row => ({ kind: row.kind, scope: row.scope, digest: digest(row.payload) })),
     ...(prepared.baseDigest !== undefined ? { baseDigest: prepared.baseDigest } : {}),
   })));
 }

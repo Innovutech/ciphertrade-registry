@@ -6,7 +6,7 @@ import os from 'node:os';
 import { resolveDescriptorIncludes, mergeDescriptor } from './descriptorIncludes.ts';
 import { compactPublication, signTrust } from './publisher.ts';
 import { ethers } from 'ethers';
-import { KINDS, metadataDigest, signatureDigest, type MetadataKind, type SignedRecord } from './protocol.ts';
+import { KINDS, MAX_RECORD_BYTES, canonicalMetadata, metadataDigest, signatureDigest, type MetadataKind, type SignedRecord } from './protocol.ts';
 
 test('include field merges preserve ordering, inherited params and explicit overrides', () => {
   assert.deepEqual(mergeDescriptor({ fields: [{ path: 'amount', params: { decimals: 6, base: 'USD' } }, { path: 'to' }] },
@@ -61,4 +61,21 @@ test('artifact compaction references identical descriptor bodies without changin
   assert.equal(Object.keys(compact.documents).length, 1);
   assert.deepEqual(compact.records[0].statement, statement);
   assert.equal(Object.hasOwn(compact.records[0], 'payload'), false);
+});
+
+test('descriptor source formatting may exceed the payload budget while signed size and input bounds remain enforced', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'cipher-source-format-'));
+  try {
+    const file = path.join(root, 'descriptor.json');
+    const payload = { note: 'x'.repeat(160 * 1024) };
+    const formatted = ' '.repeat(80 * 1024) + JSON.stringify(payload, null, 4);
+    assert.ok(Buffer.byteLength(formatted) > MAX_RECORD_BYTES);
+    assert.ok(Buffer.byteLength(canonicalMetadata(payload)) < MAX_RECORD_BYTES);
+    await fs.writeFile(file, formatted);
+    assert.deepEqual(await resolveDescriptorIncludes(root, file), payload);
+    await fs.writeFile(file, JSON.stringify({ note: 'x'.repeat(MAX_RECORD_BYTES) }));
+    await assert.rejects(resolveDescriptorIncludes(root, file));
+    await fs.writeFile(file, ' '.repeat(1024 * 1024) + '{}');
+    await assert.rejects(resolveDescriptorIncludes(root, file), /Invalid descriptor dependency/);
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
 });

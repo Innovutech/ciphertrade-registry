@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { notifyApproval, finishApproval } from '../scripts/approval-notification.mjs';
+import { notifyApproval, finishApproval, preparationFailed } from '../scripts/approval-notification.mjs';
 
 const context = { repository: 'example/registry', runId: '101', runNumber: 5, digest: `0x${'a'.repeat(64)}` };
 const reviewers = ['reviewer'];
@@ -124,4 +124,27 @@ test('a user-created lookalike issue cannot intercept approval updates', async (
   await notifyApproval(f.api, { ...context, runId: '102', runNumber: 6 }, report, reviewers);
   assert.equal(f.issues.length, 2);
   assert.equal(f.issues[1].body, body);
+});
+
+test('a failure before artifact creation still notifies reviewers and can be replaced by a valid batch', async () => {
+  const f = fixture();
+  await preparationFailed(f.api, context, reviewers);
+  assert.equal(f.issues[0].state, 'open');
+  assert.ok(f.issues[0].body.includes('@reviewer'));
+  assert.ok(f.issues[0].body.includes('Preparation failed'));
+  await notifyApproval(f.api, { ...context, runId: '102', runNumber: 6 }, report, reviewers);
+  assert.equal(f.issues.length, 1);
+  assert.ok(f.issues[0].body.includes('Awaiting approval'));
+});
+
+test('a failed newer preparation alerts once without destroying an earlier valid approval request', async () => {
+  const f = fixture();
+  await notifyApproval(f.api, context, report, reviewers);
+  const before = f.issues[0].body;
+  const failed = { ...context, runId: '102', runNumber: 6 };
+  await preparationFailed(f.api, failed, reviewers);
+  await preparationFailed(f.api, failed, reviewers);
+  assert.equal(f.issues[0].body, before);
+  assert.equal(f.comments.length, 1);
+  assert.ok(f.comments[0].includes('@reviewer'));
 });

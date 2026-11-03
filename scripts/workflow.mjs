@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { ethers } from 'ethers';
 import { latestPublication } from './latest-publication.mjs';
+import { artifactJson, encodePrepared, decodePrepared, decodeSignedPart } from '../src/publicationArtifacts.ts';
 
 const mode = process.argv[2];
 const json = async file => JSON.parse(await fs.readFile(file, 'utf8'));
@@ -21,12 +22,12 @@ if (mode === 'prepare') {
   }));
 } else if (mode === 'digest') {
   const { preparedDigest } = await import('../src/publisher.ts');
-  const prepared = await json('work/prepared.json');
+  const prepared = decodePrepared(await json('work/prepared.json'));
   const { publicationReport, renderPublicationReview } = await import('../src/publicationReport.ts');
   const { publicationReviewContext } = await import('./publication-review.mjs');
   const previous = await latestPublication((await json('trust/roots.json')).keys);
   prepared.baseDigest = previous?.contentDigest ?? null;
-  await fs.writeFile('work/prepared.json', JSON.stringify(prepared));
+  await fs.writeFile('work/prepared.json', artifactJson(encodePrepared(prepared)));
   const digest = preparedDigest(prepared);
   const context = await publicationReviewContext(prepared, previous);
   const report = publicationReport(prepared, previous ?? undefined, context);
@@ -43,8 +44,8 @@ if (mode === 'prepare') {
   const publicationMode = process.env.PUBLICATION_MODE;
   if (!['changes', 'renewal'].includes(publicationMode)) throw new Error('Invalid publication mode');
   const prepared = finalizePublication({ mode: publicationMode, previous, roots, trust: await json('trust/policy.json'),
-    ...(publicationMode === 'changes' ? { reviewed: await json('work/prepared.json'), approvedDigest: process.env.APPROVED_DIGEST } : {}) });
-  await fs.writeFile('work/prepared.json', JSON.stringify(prepared));
+    ...(publicationMode === 'changes' ? { reviewed: decodePrepared(await json('work/prepared.json')), approvedDigest: process.env.APPROVED_DIGEST } : {}) });
+  await fs.writeFile('work/prepared.json', artifactJson(encodePrepared(prepared)));
   const digest = preparedDigest(prepared);
   await fs.appendFile(process.env.GITHUB_OUTPUT, `digest=${digest}\nsequence=${prepared.sequence}\n`);
   await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `## ${publicationMode === 'renewal' ? 'Approved catalog renewal' : 'Approved changes'}\n\nSnapshot: \`${digest}\`\n\nRecords: ${prepared.records.length}. Publication version: ${prepared.sequence}.\n`);
@@ -57,13 +58,13 @@ if (mode === 'prepare') {
 } else if (mode === 'assemble') {
   const { MetadataVerifier, metadataDigest, validateConfigurationPublication } = await import('../src/protocol.ts');
   const { preparedDigest } = await import('../src/publisher.ts');
-  const prepared = await json('work/prepared.json');
+  const prepared = decodePrepared(await json('work/prepared.json'));
   if (preparedDigest(prepared) !== process.env.APPROVED_DIGEST) throw new Error('Prepared artifact changed');
   const roots = await json('trust/roots.json');
   const latest = await latestPublication(roots.keys);
   if ((latest?.contentDigest ?? null) !== prepared.baseDigest || (latest && latest.sequence >= prepared.sequence)) throw new Error('Publication base changed while signing; start a new run');
   const verifier = new MetadataVerifier(roots.keys);
-  const parts = await Promise.all(['tokens', 'descriptors', 'configuration'].map(role => json(`work/${role}.json`)));
+  const parts = await Promise.all(['tokens', 'descriptors', 'configuration'].map(async role => decodeSignedPart(await json(`work/${role}.json`))));
   const trust = verifier.acceptTrust(parts[0].trust);
   const records = new Map();
   for (const part of parts) {
