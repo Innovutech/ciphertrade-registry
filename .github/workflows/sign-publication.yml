@@ -8,6 +8,10 @@ on:
       approved-digest:
         default: ''
         type: string
+    outputs:
+      sequence:
+        description: Signed publication version
+        value: ${{ jobs.finalize.outputs.sequence }}
     secrets:
       METADATA_SIGNING_KEYS:
         # Each signing job uses its own protected environment's value.
