@@ -34,7 +34,9 @@ export async function resolveDescriptorIncludes(root: string, filename: string, 
   if (relative.startsWith('..') || path.isAbsolute(relative) || real !== resolved || !real.endsWith('.json')) throw new Error('Descriptor dependency outside source snapshot');
   if (ancestors.length >= 8 || ancestors.includes(real)) throw new Error('Cyclic or excessive descriptor includes');
   const stat = await fs.lstat(real);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 192 * 1024) throw new Error('Invalid descriptor dependency');
+  // Formatting can exceed the signed-record budget; canonicalMetadata below
+  // still enforces the unchanged 192 KiB payload limit before any signing.
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 1024 * 1024) throw new Error('Invalid descriptor dependency');
   const input = JSON.parse(await fs.readFile(real, 'utf8')) as unknown;
   canonicalMetadata(input);
   if (!object(input)) throw new Error('Invalid descriptor object');
