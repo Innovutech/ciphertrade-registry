@@ -24,7 +24,7 @@ function counts(report) {
   return `${report.added.length} added, ${report.changed.length} changed, ${report.removed.length} removed`;
 }
 
-async function alertReviewer(api, issue, marker, body) {
+export async function alertReviewer(api, issue, marker, body) {
   if (issue.body.includes(marker)) return;
   for (let page = 1; page <= 10; page++) {
     const comments = await api('GET', `issues/${issue.number}/comments?per_page=100&page=${page}`);
@@ -141,7 +141,7 @@ export async function preparationFailed(api, context, reviewers) {
   return updated;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+export async function githubNotificationContext() {
   const repository = process.env.GITHUB_REPOSITORY;
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? '') || !process.env.GH_TOKEN) throw new Error('Missing GitHub notification configuration');
   const api = async (method, path, body) => {
@@ -157,6 +157,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     .filter(row => row.type === 'User' && policy.userIds.includes(row.reviewer.id));
   const reviewers = [...new Set(people.map(row => row.reviewer.login))];
   if (!reviewers.length) throw new Error('No configured reviewer available for approval notification');
+  return { api, repository, reviewers };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { api, repository, reviewers } = await githubNotificationContext();
   const context = { repository, runId: process.env.GITHUB_RUN_ID, runNumber: Number(process.env.GITHUB_RUN_NUMBER), digest: process.env.APPROVED_DIGEST };
   let issue;
   if (process.argv[2] === 'ready') issue = await notifyApproval(api, context, JSON.parse(await fs.readFile('work/review.json', 'utf8')), reviewers);

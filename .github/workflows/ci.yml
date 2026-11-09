@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '24.16.0'
+          node-version: '24.22.1'
       - run: npm ci --ignore-scripts --no-audit
       - run: npm test
       - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes=
@@ -27,3 +27,4 @@ jobs:
       - run: node --check scripts/publication-review.mjs
       - run: node --check scripts/trust-policy.mjs
       - run: node --check scripts/approval-notification.mjs
+      - run: node --check scripts/delivery-monitor.mjs

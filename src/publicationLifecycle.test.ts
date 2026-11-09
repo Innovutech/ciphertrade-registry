@@ -63,24 +63,60 @@ test('historical config still rejects modified payloads, forged proofs, wrong ro
   assert.throws(() => verifyPrevious(mixed, roots, now), /metadata format/);
 });
 
-test('automatic renewal preserves every approved payload and works after record expiry', () => {
-  const prior = previous();
+test('automatic renewal revalidates expired prior signatures and preserves every approved payload', () => {
   const future = now + 86400000;
+  const prior = verifyPrevious(compactPublication(publication()), roots, future);
   const renewed = finalizePublication({ mode: 'renewal', previous: prior, roots, trust: trust(), now: future });
   assert.deepEqual(renewed.records, prepared.records);
   assert.equal(renewed.sequence, future);
-  assert.equal(renewed.expiresAt, future + 7 * 86400000);
+  assert.equal(renewed.expiresAt, future + 30 * 86400000);
   assert.equal(catalogDigest(renewed.records), prior.contentDigest);
 });
 test('unattended renewal cannot import an unsigned candidate or bootstrap without approval', () => {
   assert.throws(() => finalizePublication({ mode: 'renewal', previous: null, roots, trust: trust(), now }), /previous/);
   assert.throws(() => finalizePublication({ mode: 'renewal', previous: previous(), roots, trust: trust(), now, reviewed: prepared }), /only/);
+  assert.throws(() => finalizePublication({ mode: 'renewal', previous: previous(), roots, trust: trust(), now, approvedDigest: preparedDigest(prepared) }), /only/);
   const tampered = structuredClone(publication());
   tampered.records[0]!.payload = { ...payload, decimals: 18 };
   assert.throws(() => verifyPrevious(tampered, roots), /digest/);
   const duplicate = publication();
   duplicate.records.push(duplicate.records[0]!);
   assert.throws(() => verifyPrevious(duplicate, roots), /Duplicate/);
+});
+
+test('renewal leaves awaiting additions and the review digest untouched', () => {
+  const prior = previous();
+  const pending = structuredClone({ ...prepared, baseDigest: prior.contentDigest });
+  pending.records.push({ kind: 'token', scope: `1:0x${'55'.repeat(20)}`, payload: { ...payload, address: '0x' + '55'.repeat(20) } });
+  const snapshot = structuredClone(pending), digest = preparedDigest(pending);
+  const renewed = finalizePublication({ mode: 'renewal', previous: prior, roots, trust: trust(), now });
+  const release = signPublication(renewed, preparedDigest(renewed), trust(), roots, { token: key.privateKey, configuration: configurationKey.privateKey });
+  const delivered = verifyPrevious(compactPublication(release), roots, now);
+  assert.deepEqual(renewed.records, prepared.records);
+  assert.equal(delivered.contentDigest, prior.contentDigest);
+  assert.deepEqual(pending, snapshot);
+  assert.equal(preparedDigest(pending), digest);
+  const changed = finalizePublication({ mode: 'changes', previous: delivered, reviewed: pending, approvedDigest: digest, roots, trust: trust(), now });
+  assert.deepEqual(changed.records, pending.records);
+});
+
+test('expired prior data still needs authentic proofs and current authority for renewal', () => {
+  const future = now + 86400000;
+  const old = publication();
+  const prior = verifyPrevious(old, roots, future);
+  const invalid = structuredClone(old);
+  invalid.records[0]!.signature = root.sign(signatureDigest('record', invalid.records[0]!.statement)).compactSerialized;
+  assert.throws(() => verifyPrevious(invalid, roots, future), /signature/);
+  for (const change of [
+    { keys: policy.keys.map(row => row.id === 'token' ? { ...row, expiresAt: future } : row) },
+    { keys: policy.keys.map(row => row.id === 'token' ? { ...row, notBefore: now + 1 } : row) },
+    { keys: policy.keys.map(row => row.id === 'token' ? { ...row, kinds: ['asset' as const] } : row) },
+    { revokedDigests: [metadataDigest(payload)] },
+    { minimumSequences: { ...policy.minimumSequences, token: 3 } },
+  ]) {
+    assert.throws(() => finalizePublication({ mode: 'renewal', previous: prior, roots, now: future,
+      trust: trust({ ...policy, ...change, sequence: 2 }) }), /no longer authorized/);
+  }
 });
 test('revoked payloads, removed/changed keys and raised floors cannot silently renew', () => {
   for (const change of [{ revokedDigests: [metadataDigest(payload)] }, { keys: [] },

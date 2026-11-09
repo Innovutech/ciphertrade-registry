@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { ethers } from 'ethers';
 import { latestPublication } from './latest-publication.mjs';
 import { artifactJson, encodePrepared, decodePrepared, decodeSignedPart } from '../src/publicationArtifacts.ts';
+import { PUBLICATION_LIFETIME, assertRecordPublication } from '../src/publicationValidity.ts';
 
 const mode = process.argv[2];
 const json = async file => JSON.parse(await fs.readFile(file, 'utf8'));
@@ -18,7 +19,7 @@ if (mode === 'prepare') {
   await fs.writeFile('work/config.json', JSON.stringify({
     curatedDirectory: 'catalog', trustWalletDirectory: 'sources/trustwallet', registryDirectory: 'sources/registry',
     revisions, chains: networks, networks, domains: await json('catalog/domains.json'),
-    sequence: Number(process.env.GITHUB_RUN_NUMBER), issuedAt, expiresAt: issuedAt + 7 * 86400000,
+    sequence: Number(process.env.GITHUB_RUN_NUMBER), issuedAt, expiresAt: issuedAt + PUBLICATION_LIFETIME,
   }));
 } else if (mode === 'digest') {
   const { preparedDigest } = await import('../src/publisher.ts');
@@ -70,7 +71,7 @@ if (mode === 'prepare') {
   for (const part of parts) {
     if (metadataDigest(part.trust) !== metadataDigest(trust)) throw new Error('Signing roles used different trust policies');
     for (const record of part.records) {
-      if (record.statement.sequence !== prepared.sequence || record.statement.issuedAt !== prepared.issuedAt || record.statement.expiresAt !== prepared.expiresAt) throw new Error('Signing role used a different publication version or validity period');
+      assertRecordPublication(record.statement, prepared, trust.payload);
       verifier.verify(record.payload, { statement: record.statement, signature: record.signature }, record.statement.kind, record.statement.scope);
       const id = `${record.statement.kind}:${record.statement.scope}`;
       if (records.has(id)) throw new Error('Duplicate signed scope');

@@ -2,10 +2,10 @@ import { ethers } from 'ethers';
 import { MetadataVerifier, metadataDigest, validateConfigurationPublication, type RootKey, type SignedTrust, type SignedRecord, type Evidence } from './protocol.ts';
 import { preparedDigest, type Candidate, type PreparedPublication } from './publisher.ts';
 import { isConfigurationHistory, verifyConfigurationHistory } from './configurationHistory.ts';
+import { PUBLICATION_LIFETIME } from './publicationValidity.ts';
 
 export type Publication = { schema: 1; trust: SignedTrust; documents?: Record<string, unknown>; records: (Evidence & { payload?: unknown; payloadRef?: string })[] };
 export type VerifiedPublication = { trust: SignedTrust; records: SignedRecord[]; sequence: number; contentDigest: string };
-const WEEK = 7 * 86400000;
 
 export function catalogDigest(records: Candidate[]): string {
   const rows = records.map(row => [row.kind, row.scope, metadataDigest(row.payload)]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b), 'en'));
@@ -69,11 +69,10 @@ export function finalizePublication(options: {
   validateConfigurationPublication(records);
   const sequence = Math.max(now, (previous?.sequence ?? 0) + 1);
   if (!Number.isSafeInteger(sequence) || sequence <= 0) throw new Error('Invalid publication sequence');
-  let expiresAt = Math.min(now + WEEK, trust.payload.expiresAt ?? Infinity);
+  const expiresAt = Math.min(now + PUBLICATION_LIFETIME, trust.payload.expiresAt ?? Infinity);
   for (const kind of new Set(records.map(row => row.kind))) {
     const keys = trust.payload.keys.filter(key => key.kinds.includes(kind) && key.notBefore <= now && (key.expiresAt === null || key.expiresAt > now));
     if (!keys.length) throw new Error('No current publishing key for catalog');
-    expiresAt = Math.min(expiresAt, Math.max(...keys.map(key => key.expiresAt ?? Infinity)));
   }
   if (expiresAt <= now) throw new Error('Publication authorization expired');
   return { schema: 1, sequence, issuedAt: now, expiresAt, sources, records, baseDigest: previous?.contentDigest ?? null };

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { ethers } from 'ethers';
 import { resolveDescriptorIncludes } from './descriptorIncludes.ts';
 import { readCuratedTokenCatalog, readClassificationRemovals } from './configuration.ts';
+import { recordExpiry } from './publicationValidity.ts';
 import {
   canonicalMetadata, metadataDigest, signatureDigest, tokenIdentity, tokenScope, descriptorScope,
   validateConfigurationPublication, MetadataVerifier, encodeMetadataHeader, MAX_HEADER_BYTES, type MetadataKind, type SignedRecord, type SignedTrust, type RootKey, type TokenPublication,
@@ -10,6 +11,7 @@ import {
 
 export type Candidate = { kind: MetadataKind; scope: string; payload: unknown };
 export type PreparedPublication = {
+  // expiresAt is the approved upper bound; each signed record also applies its kind and authority caps.
   schema: 1; sequence: number; issuedAt: number; expiresAt: number;
   sources: { name: string; revision: string }[]; records: Candidate[];
   baseDigest?: string | null;
@@ -199,14 +201,16 @@ export function signPublication(prepared: PreparedPublication, approvedDigest: s
     const id = `${row.kind}:${row.scope}`;
     if (seen.has(id)) throw new Error('Duplicate prepared scope');
     seen.add(id);
-    const key = trust.payload.keys.find(candidate => candidate.kinds.includes(row.kind) && signingKeys[candidate.id]);
+    const key = trust.payload.keys.find(candidate => candidate.kinds.includes(row.kind) && signingKeys[candidate.id]
+      && candidate.notBefore <= prepared.issuedAt && (candidate.expiresAt === null || candidate.expiresAt > Math.max(prepared.issuedAt, Date.now())));
     if (!key) throw new Error(`Missing scoped publication key for ${row.kind}`);
     let signer: ethers.SigningKey;
     try { signer = new ethers.SigningKey(signingKeys[key.id]!); }
     catch { throw new Error('Invalid configured publication key'); }
     if (signer.compressedPublicKey !== ethers.SigningKey.computePublicKey(key.publicKey, true)) throw new Error('Wrong publication key');
     const statement = { schema: 1 as const, kind: row.kind, scope: row.scope, keyId: key.id,
-      sequence: prepared.sequence, issuedAt: prepared.issuedAt, expiresAt: prepared.expiresAt, digest: metadataDigest(row.payload) };
+      sequence: prepared.sequence, issuedAt: prepared.issuedAt,
+      expiresAt: recordExpiry(prepared, row.kind, key.id, trust.payload), digest: metadataDigest(row.payload) };
     const signature = signer.sign(signatureDigest('record', statement)).compactSerialized;
     if (trustHeaderBytes + encodeMetadataHeader([{ statement, signature }]).length > MAX_HEADER_BYTES) throw new Error('Metadata evidence exceeds response-header budget');
     return verifier.verify(row.payload, { statement, signature }, row.kind, row.scope);

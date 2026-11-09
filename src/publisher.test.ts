@@ -72,6 +72,8 @@ test('optional spam flags are boolean, signed, and do not change identity or pub
 test('approval digest binds payload, source revisions, scope and publication times', () => {
   for (const change of [
     (p: PreparedPublication) => { p.sequence++; },
+    (p: PreparedPublication) => { p.issuedAt++; },
+    (p: PreparedPublication) => { p.expiresAt++; },
     (p: PreparedPublication) => { p.sources[0]!.revision = 'b'.repeat(40); },
     (p: PreparedPublication) => { p.records[0] = { ...candidate, scope: tokenScope(10, payload.address) }; },
     (p: PreparedPublication) => { p.records[0] = { ...candidate, payload: { ...payload, decimals: 18 } }; },
