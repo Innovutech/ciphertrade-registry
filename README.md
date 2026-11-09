@@ -60,6 +60,104 @@ serialized signer. Consumers verify short-lived records using trusted public key
 root-authorized publishing keys can have non-expiring authorization.
 Private keys belong in protected signing environments, never in this repository.
 
+### Record validity and renewal
+
+New signed records use these publisher lifetimes, within the existing consumer
+verifier ceilings; the public release and statement schemas are unchanged:
+
+| Kind | Issued validity | Existing verifier ceiling |
+| --- | --- | --- |
+| `networks` (chains and all per-chain configuration, including token catalogs) | 30 days | 30 days |
+| `token`, `asset` (identity and presentation) | 30 days | 90 days |
+| `classification`, `descriptor` | 30 days | 30 days |
+| `domains` (trusted-site patterns and every `dapp:*` record) | 7 days | 7 days |
+
+Each record is also capped by the prepared upper deadline, its actual signing
+key's authorization expiry, and the signed trust policy expiry. A short-lived key
+or domain record does not shorten unrelated records. Non-expiring authorization
+never makes a record non-expiring. The existing `preparedDigest` format still
+binds payloads, sources, scopes, sequence, issue time, deadline and catalog base;
+descriptor artifact compaction does not change that digest. Assembly verifies
+the exact per-record deadline, not a global expiry shared by all signing roles.
+
+Renewal authenticates the last published catalog at its original issue times,
+even after those records expire, then rechecks current root-authorized policy,
+key identity/roles, revocations and sequence floors. It renews only those approved
+payloads. It cannot import pending additions, substitute a prepared review, or
+bootstrap a first publication without review. An awaiting change batch and its
+approval digest stay untouched; identical-content renewals do not supersede its
+catalog base. Historical verification is for renewal/review only, not permission
+for consumers to use expired records.
+
+Activation is separate from delivery:
+
+- A code-only push runs CI, not publication. `publish.yml` reacts to `catalog/**`
+  pushes on `main`, explicit dispatch, or Monday/Thursday at 08:00 UTC. It prepares
+  a batch; changed content still requires `metadata-review` approval.
+- `renew.yml` runs Monday/Thursday at 09:00 UTC or by explicit dispatch, only on
+  `main` with `METADATA_AUTORENEW_ENABLED=true`. Its next run on this code issues
+  the new lifetimes without approving pending changes. A push alone does not
+  re-sign an existing release; dispatch is needed only to activate before the
+  next enabled schedule. Both paths use the same serialized signing writer.
+- Installing an already-published approved renewal does not change its signed
+  validity. The API downloader must separately validate, install and serve it.
+  A successful GitHub auto-renewal can coexist with failed VPS delivery, as in
+  the observed delivery incident. Do not resolve that failure by approving an
+  unrelated waiting batch. Consumer cache/startup scope isolation is separate
+  from this publisher's issuance policy.
+
+### Delivery and expiry alerts
+
+`monitor-delivery.yml` checks production at minute 17 every six hours UTC, or by
+explicit dispatch. It has no signing secrets, approval environment, release-write
+permission or workflow-dispatch calls. A push does not run the check immediately;
+its schedule becomes available when the workflow reaches the default branch.
+
+The actual public endpoint is
+`https://api.ciphertrade.org/chains?configuration=static`: the body is the signed
+`networks:chains` payload and `Cipher-Metadata` also carries the complete signed
+`domains:domains` trusted-site pattern catalog. There is no separate public
+`/domains` endpoint. `Cipher-Metadata-Trust` authenticates the response policy.
+Plain `/chains` may contain runtime availability, so it is not used for this check.
+The API header packer may omit an additional domain record when the combined
+header budget is exceeded. Publisher signing/assembly already rejects a chains
+and domains pair that exceeds that budget; the monitor still treats missing
+domains as a delivery failure, never a healthy chains-only response. Tests cover
+both the current domain catalog and an oversized, omitted domain payload.
+The monitor validates each required scope independently, including current trust
+revocations/authority, and compares its signed sequence with the newest published
+`metadata-*` GitHub release. It fetches only this bounded response and release
+metadata, not a full descriptor catalog. Optional authenticated dApp search is not
+an exhaustive delivery probe; dApp record expiry remains seven days.
+
+Alerts cover HTTP/network failures, missing/invalid/expired proofs, mixed serving
+versions, release lag beyond a two-hour delivery grace period, validity remaining
+at or below 48 hours (including finite authority), incomplete/unreadable releases,
+and no release for five days. Chains can remain healthy while domains alert.
+Strict validation of every record in a new release remains the API updater's job.
+
+The monitor creates/reopens **Metadata delivery or expiry needs attention**, a
+separate bot-owned issue assigned to the existing allowlisted `metadata-review`
+reviewers. New problems and daily UTC reminders post fresh mentions; retries are
+deduplicated. Recovery comments and closes only that monitor issue. Pending
+approval issues are never modified, approved or closed by this check. GitHub
+inbox, email and mobile notifications still depend on each reviewer's settings.
+If GitHub or reviewer lookup itself is unavailable, the workflow fails visibly;
+it cannot deliver an issue notification through an unavailable GitHub service.
+
+CI, preparation, notification, signing and delivery monitoring all pin the
+API-approved Node `24.22.1`. Workflow tests reject a mismatched runtime pin.
+
+### Focused verification
+
+Use synthetic keys only. Run these suites sequentially on the verification host;
+neither command approves, signs a production release or dispatches a workflow:
+
+```sh
+node --test --test-concurrency=1 src/publicationValidity.test.ts src/publicationLifecycle.test.ts src/publisher.test.ts src/deliveryMonitor.test.ts src/approvalNotification.test.ts src/workflows.test.ts
+node --test --test-concurrency=1 src/*.test.ts
+```
+
 Every curated public network must declare boolean `isTestnet`, including `false`
 for mainnets. Historical records without it remain verifiable; new preparation
 requires explicit classification. Deploy updated consumers before publishing a
