@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { importTokenSources, importDescriptors, preparedDigest, signPublication, compactPublication, type ImportOptions, type PreparedPublication } from './publisher.ts';
+import { importTokenSources, importDescriptors, importPositionPolicyDescriptors, preparedDigest, signPublication, compactPublication, type ImportOptions, type PreparedPublication } from './publisher.ts';
 import type { MetadataKind, RootKey, SignedTrust } from './protocol.ts';
 import { importConfigurationSources } from './configuration.ts';
 import { validatePublicNetworkPayload } from './protocol.ts';
@@ -23,6 +23,7 @@ if (command === 'prepare') {
   records.push(...dapps.records);
   if (dapps.skipped.length) console.warn(JSON.stringify({ skippedDappAssets: dapps.skipped }));
   if (config.registryDirectory) records.push(...await importDescriptors(config.registryDirectory));
+  records.push(...await importPositionPolicyDescriptors(config.curatedDirectory, config.networks));
   records.push(...await importConfigurationSources({ curatedDirectory: config.curatedDirectory, networks: config.networks, domains: config.domains }));
   records.sort((a, b) => `${a.kind}:${a.scope}`.localeCompare(`${b.kind}:${b.scope}`, 'en'));
   const prepared: PreparedPublication = {

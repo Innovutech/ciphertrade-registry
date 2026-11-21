@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ethers } from 'ethers';
 import { resolveDescriptorIncludes } from './descriptorIncludes.ts';
+import { isPositionPolicyScope, positionPolicyScope, validatePositionPolicyDescriptor } from './positionPolicyDescriptors.ts';
 import { readCuratedTokenCatalog, readClassificationRemovals } from './configuration.ts';
 import { recordExpiry } from './publicationValidity.ts';
 import {
@@ -141,6 +142,22 @@ export async function importTokenSources(options: ImportOptions): Promise<Candid
   return [...tokens].map(([scope, payload]): Candidate => ({ kind: 'token', scope, payload })).concat([...assetsOnly.values()], [...classifications.values()]);
 }
 
+export async function importPositionPolicyDescriptors(directory: string, chains: Record<string, unknown>): Promise<Candidate[]> {
+  const records: Candidate[] = [];
+  for (const file of await fs.readdir(directory, { withFileTypes: true })) {
+    if (!file.name.startsWith('position-actions.')) continue;
+    const chainId = Number(file.name.split('.')[1]);
+    const scope = positionPolicyScope(chainId);
+    if (file.name !== `position-actions.${chainId}.json` || !Object.hasOwn(chains, String(chainId))) {
+      throw new Error(`Unknown position policy chain or noncanonical filename: ${file.name}`);
+    }
+    const row: Candidate = { kind: 'descriptor', scope, payload: await readJson(path.join(directory, file.name)) };
+    validatePositionPolicyDescriptor(row);
+    records.push(row);
+  }
+  return records;
+}
+
 export async function importDescriptors(directory: string): Promise<Candidate[]> {
   const records: Candidate[] = [];
   const scopes = new Map<string, string>();
@@ -162,6 +179,7 @@ export async function importDescriptors(directory: string): Promise<Candidate[]>
           let selector: string;
           try { selector = ethers.FunctionFragment.from(signature).selector; } catch { continue; }
           const scope = descriptorScope(deployment.chainId, deployment.address, selector);
+          if (isPositionPolicyScope(scope)) throw new Error('Display registry cannot supply position policies');
           const prior = scopes.get(scope);
           if (prior && prior !== digest) throw new Error(`Conflicting descriptor coverage: ${scope}`);
           if (!prior) records.push({ kind: 'descriptor', scope, payload });
@@ -192,6 +210,7 @@ export function preparedDigest(prepared: PreparedPublication): string {
 export function signPublication(prepared: PreparedPublication, approvedDigest: string, trust: SignedTrust, roots: RootKey[], signingKeys: Record<string, string>, kinds?: readonly MetadataKind[]): { schema: 1; trust: SignedTrust; records: SignedRecord[] } {
   if (prepared.schema !== 1 || preparedDigest(prepared) !== approvedDigest) throw new Error('Prepared snapshot differs from approved digest');
   validateConfigurationPublication(prepared.records);
+  prepared.records.forEach(validatePositionPolicyDescriptor);
   const verifier = new MetadataVerifier(roots);
   verifier.acceptTrust(trust);
   const trustHeaderBytes = encodeMetadataHeader(trust).length;
@@ -233,6 +252,7 @@ export function signTrust(payload: SignedTrust['payload'], rootId: string, priva
 }
 
 export function compactPublication(publication: { schema: 1; trust: SignedTrust; records: SignedRecord[] }) {
+  publication.records.forEach(({ statement, payload }) => validatePositionPolicyDescriptor({ ...statement, payload }));
   validateConfigurationPublication(publication.records.map(row => ({ kind: row.statement.kind, scope: row.statement.scope, payload: row.payload })));
   assertConfigurationHeaderBudget(publication.records, publication.trust);
   const documents: Record<string, unknown> = Object.create(null);

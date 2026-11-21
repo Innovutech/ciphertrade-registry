@@ -27,6 +27,8 @@ if (mode === 'prepare') {
   const { publicationReport, renderPublicationReview } = await import('../src/publicationReport.ts');
   const { publicationReviewContext } = await import('./publication-review.mjs');
   const previous = await latestPublication((await json('trust/roots.json')).keys);
+  const { positionPolicyWithdrawals } = await import('../src/positionPolicyDescriptors.ts');
+  prepared.records.push(...positionPolicyWithdrawals(prepared.records, previous));
   prepared.baseDigest = previous?.contentDigest ?? null;
   await fs.writeFile('work/prepared.json', artifactJson(encodePrepared(prepared)));
   const digest = preparedDigest(prepared);

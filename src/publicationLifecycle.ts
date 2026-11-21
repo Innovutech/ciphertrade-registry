@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { MetadataVerifier, metadataDigest, validateConfigurationPublication, type RootKey, type SignedTrust, type SignedRecord, type Evidence } from './protocol.ts';
 import { preparedDigest, type Candidate, type PreparedPublication } from './publisher.ts';
 import { isConfigurationHistory, verifyConfigurationHistory } from './configurationHistory.ts';
+import { positionPolicyWithdrawals, validatePositionPolicyDescriptor } from './positionPolicyDescriptors.ts';
 import { PUBLICATION_LIFETIME } from './publicationValidity.ts';
 
 export type Publication = { schema: 1; trust: SignedTrust; documents?: Record<string, unknown>; records: (Evidence & { payload?: unknown; payloadRef?: string })[] };
@@ -22,6 +23,7 @@ export function verifyPrevious(input: Publication, roots: RootKey[], now = Date.
     if (row.statement.issuedAt > now + 60000) throw new Error('Future publication');
     if (row.payloadRef && (row.payloadRef !== row.statement.digest || !input.documents || !Object.hasOwn(input.documents, row.payloadRef))) throw new Error('Invalid previous document reference');
     const payload = row.payloadRef ? input.documents![row.payloadRef] : row.payload;
+    validatePositionPolicyDescriptor({ ...row.statement, payload });
     const id = `${row.statement.kind}:${row.statement.scope}`;
     if (scopes.has(id)) throw new Error('Duplicate previous scope');
     scopes.add(id);
@@ -64,9 +66,11 @@ export function finalizePublication(options: {
     if (!reviewed || !options.approvedDigest || preparedDigest(reviewed) !== options.approvedDigest) throw new Error('Reviewed snapshot changed');
     if (reviewed.baseDigest === undefined || reviewed.baseDigest !== (previous?.contentDigest ?? null)) throw new Error('Reviewed catalog base was superseded; review again');
     records = reviewed.records;
+    if (positionPolicyWithdrawals(records, previous).length) throw new Error('Missing reviewed empty position policy descriptor');
     sources = reviewed.sources;
   } else throw new Error('Unsupported publication mode');
   validateConfigurationPublication(records);
+  records.forEach(validatePositionPolicyDescriptor);
   const sequence = Math.max(now, (previous?.sequence ?? 0) + 1);
   if (!Number.isSafeInteger(sequence) || sequence <= 0) throw new Error('Invalid publication sequence');
   const expiresAt = Math.min(now + PUBLICATION_LIFETIME, trust.payload.expiresAt ?? Infinity);

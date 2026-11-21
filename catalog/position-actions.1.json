@@ -1,0 +1,359 @@
+{
+  "schemaVersion": 1,
+  "policies": [
+    {
+      "schemaVersion": 1,
+      "id": "carbon-1-update-strategy-v1",
+      "chainId": 1,
+      "protocolId": "carbon",
+      "actionId": "update-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "update",
+        "label": "Edit ranges",
+        "title": "Update strategy ranges",
+        "icon": "edit",
+        "group": "manage",
+        "order": 10,
+        "inputs": [
+          {
+            "key": "buyPriceLow",
+            "label": "Buy low (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "buyPriceHigh",
+            "label": "Buy high (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "sellPriceLow",
+            "label": "Sell low (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "sellPriceHigh",
+            "label": "Sell high (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1"
+        ],
+        "contracts": {
+          "controller": "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1",
+          "voucher": "0x3660f04b79751e31128f6378eac70807e38f554e"
+        },
+        "integrity": {
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x1e08049c180e25478bf7a0357171547b7332bf2c",
+            "implementationCodeHash": "0xcc6f9ba53c3a971839d96b1f632122c47e5eff1624670a562c589e707ce19983"
+          },
+          "0x3660f04b79751e31128f6378eac70807e38f554e": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x460cb0b4fb97b5a05b6105d7fd8d464902109d0a",
+            "implementationCodeHash": "0x50496e8e65eddb1dfad9bef429c4a73401c94954f7f093e48d7c0d1640e1b5bf"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-1-fund-strategy-v1",
+      "chainId": 1,
+      "protocolId": "carbon",
+      "actionId": "fund-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "fund",
+        "label": "Add funds",
+        "title": "Fund strategy",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "buyAmountRaw",
+            "label": "Buy budget (quote)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "buyFundMaxRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "quoteDecimals"
+            }
+          },
+          {
+            "key": "sellAmountRaw",
+            "label": "Sell budget (base)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "sellFundMaxRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "baseDecimals"
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "amountField": "buyAmountRaw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "amountField": "sellAmountRaw"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1"
+        ],
+        "contracts": {
+          "controller": "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1",
+          "voucher": "0x3660f04b79751e31128f6378eac70807e38f554e"
+        },
+        "integrity": {
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x1e08049c180e25478bf7a0357171547b7332bf2c",
+            "implementationCodeHash": "0xcc6f9ba53c3a971839d96b1f632122c47e5eff1624670a562c589e707ce19983"
+          },
+          "0x3660f04b79751e31128f6378eac70807e38f554e": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x460cb0b4fb97b5a05b6105d7fd8d464902109d0a",
+            "implementationCodeHash": "0x50496e8e65eddb1dfad9bef429c4a73401c94954f7f093e48d7c0d1640e1b5bf"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-1-withdraw-strategy-v1",
+      "chainId": 1,
+      "protocolId": "carbon",
+      "actionId": "withdraw-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw strategy funds",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "buyAmountRaw",
+            "label": "Buy budget (quote)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "buyBudgetRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "quoteDecimals"
+            }
+          },
+          {
+            "key": "sellAmountRaw",
+            "label": "Sell budget (base)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "sellBudgetRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "baseDecimals"
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1"
+        ],
+        "contracts": {
+          "controller": "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1",
+          "voucher": "0x3660f04b79751e31128f6378eac70807e38f554e"
+        },
+        "integrity": {
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x1e08049c180e25478bf7a0357171547b7332bf2c",
+            "implementationCodeHash": "0xcc6f9ba53c3a971839d96b1f632122c47e5eff1624670a562c589e707ce19983"
+          },
+          "0x3660f04b79751e31128f6378eac70807e38f554e": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x460cb0b4fb97b5a05b6105d7fd8d464902109d0a",
+            "implementationCodeHash": "0x50496e8e65eddb1dfad9bef429c4a73401c94954f7f093e48d7c0d1640e1b5bf"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-1-close-strategy-v1",
+      "chainId": 1,
+      "protocolId": "carbon",
+      "actionId": "close-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "cancel",
+        "label": "Close strategy",
+        "title": "Close strategy and withdraw",
+        "icon": "close",
+        "group": "manage",
+        "order": 40,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1"
+        ],
+        "contracts": {
+          "controller": "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1",
+          "voucher": "0x3660f04b79751e31128f6378eac70807e38f554e"
+        },
+        "integrity": {
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x1e08049c180e25478bf7a0357171547b7332bf2c",
+            "implementationCodeHash": "0xcc6f9ba53c3a971839d96b1f632122c47e5eff1624670a562c589e707ce19983"
+          },
+          "0x3660f04b79751e31128f6378eac70807e38f554e": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x460cb0b4fb97b5a05b6105d7fd8d464902109d0a",
+            "implementationCodeHash": "0x50496e8e65eddb1dfad9bef429c4a73401c94954f7f093e48d7c0d1640e1b5bf"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    }
+  ]
+}

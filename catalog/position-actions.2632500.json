@@ -1,0 +1,1697 @@
+{
+  "schemaVersion": 1,
+  "policies": [
+    {
+      "schemaVersion": 1,
+      "id": "carbon-2632500-update-strategy-v1",
+      "chainId": 2632500,
+      "protocolId": "carbon",
+      "actionId": "update-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "update",
+        "label": "Edit ranges",
+        "title": "Update strategy ranges",
+        "icon": "edit",
+        "group": "manage",
+        "order": 10,
+        "inputs": [
+          {
+            "key": "buyPriceLow",
+            "label": "Buy low (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "buyPriceHigh",
+            "label": "Buy high (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "sellPriceLow",
+            "label": "Sell low (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          },
+          {
+            "key": "sellPriceHigh",
+            "label": "Sell high (quote/base)",
+            "type": "decimal",
+            "min": "0",
+            "max": "999999999999999999999999999999999999",
+            "decimals": 128,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseToken"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteToken"
+              }
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea"
+        ],
+        "contracts": {
+          "controller": "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea",
+          "voucher": "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5"
+        },
+        "integrity": {
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0x5bca3389786385a35bca14c2d0582adc6cb2482e",
+            "implementationCodeHash": "0x557454b836c5246f2adc3d61bf4e4a441e7cd64c59e59e018884168b5b5b3e1a"
+          },
+          "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0xb0d39990e1c38b50d0b7f6911525535fbacb4c26",
+            "implementationCodeHash": "0x7623525e14583110e59ec7ee5fe7ee6a708926867861377737d94b12c56daaf1"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-2632500-fund-strategy-v1",
+      "chainId": 2632500,
+      "protocolId": "carbon",
+      "actionId": "fund-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "fund",
+        "label": "Add funds",
+        "title": "Fund strategy",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "buyAmountRaw",
+            "label": "Buy budget (quote)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "buyFundMaxRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "quoteDecimals"
+            }
+          },
+          {
+            "key": "sellAmountRaw",
+            "label": "Sell budget (base)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "sellFundMaxRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "baseDecimals"
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "amountField": "buyAmountRaw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "amountField": "sellAmountRaw"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea"
+        ],
+        "contracts": {
+          "controller": "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea",
+          "voucher": "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5"
+        },
+        "integrity": {
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0x5bca3389786385a35bca14c2d0582adc6cb2482e",
+            "implementationCodeHash": "0x557454b836c5246f2adc3d61bf4e4a441e7cd64c59e59e018884168b5b5b3e1a"
+          },
+          "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0xb0d39990e1c38b50d0b7f6911525535fbacb4c26",
+            "implementationCodeHash": "0x7623525e14583110e59ec7ee5fe7ee6a708926867861377737d94b12c56daaf1"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-2632500-withdraw-strategy-v1",
+      "chainId": 2632500,
+      "protocolId": "carbon",
+      "actionId": "withdraw-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw strategy funds",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "buyAmountRaw",
+            "label": "Buy budget (quote)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "buyBudgetRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "quoteToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "quoteDecimals"
+            }
+          },
+          {
+            "key": "sellAmountRaw",
+            "label": "Sell budget (base)",
+            "value": "0",
+            "type": "amount",
+            "min": "0",
+            "max": {
+              "source": "state",
+              "key": "sellBudgetRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "baseToken"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "baseDecimals"
+            }
+          }
+        ],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea"
+        ],
+        "contracts": {
+          "controller": "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea",
+          "voucher": "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5"
+        },
+        "integrity": {
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0x5bca3389786385a35bca14c2d0582adc6cb2482e",
+            "implementationCodeHash": "0x557454b836c5246f2adc3d61bf4e4a441e7cd64c59e59e018884168b5b5b3e1a"
+          },
+          "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0xb0d39990e1c38b50d0b7f6911525535fbacb4c26",
+            "implementationCodeHash": "0x7623525e14583110e59ec7ee5fe7ee6a708926867861377737d94b12c56daaf1"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "carbon-2632500-close-strategy-v1",
+      "chainId": 2632500,
+      "protocolId": "carbon",
+      "actionId": "close-strategy",
+      "descriptor": {
+        "execution": "api",
+        "family": "cancel",
+        "label": "Close strategy",
+        "title": "Close strategy and withdraw",
+        "icon": "close",
+        "group": "manage",
+        "order": 40,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "fixed",
+        "addresses": [
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea"
+        ],
+        "contracts": {
+          "controller": "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea",
+          "voucher": "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5"
+        },
+        "integrity": {
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0x5bca3389786385a35bca14c2d0582adc6cb2482e",
+            "implementationCodeHash": "0x557454b836c5246f2adc3d61bf4e4a441e7cd64c59e59e018884168b5b5b3e1a"
+          },
+          "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0xb0d39990e1c38b50d0b7f6911525535fbacb4c26",
+            "implementationCodeHash": "0x7623525e14583110e59ec7ee5fe7ee6a708926867861377737d94b12c56daaf1"
+          }
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "carbon-strategy-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-public-cancel-order-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "cancel-order",
+      "descriptor": {
+        "execution": "api",
+        "family": "cancel",
+        "label": "Cancel",
+        "title": "Cancel order",
+        "icon": "close",
+        "group": "manage",
+        "order": 40,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "targets": [
+          "0xff3372d73131d56f4bc7ad2fc8545b0316d0a1ce"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "public"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-public-amend-order-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "amend-order",
+      "descriptor": {
+        "execution": "api",
+        "family": "update",
+        "label": "Update",
+        "title": "Update order",
+        "icon": "edit",
+        "group": "manage",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "limitPrice",
+            "label": "Limit price",
+            "type": "decimal",
+            "min": "0.000000000000000000000000000000000000000000000000000000000000000000000000000001",
+            "max": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+            "decimals": 78,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseAsset"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteAsset"
+              }
+            }
+          },
+          {
+            "key": "expiryRaw",
+            "label": "Expiry",
+            "type": "timestamp",
+            "min": "0",
+            "max": "253402300799",
+            "allowNoExpiry": true
+          }
+        ],
+        "defaults": {
+          "marketPresentationRevision": "9aea88110602c3ba168278acf39374540d3a22db9d20fae9cefc060f1b4d0c70"
+        },
+        "spend": [],
+        "preview": "api",
+        "requiresLocalAmounts": false,
+        "targets": [
+          "0xff3372d73131d56f4bc7ad2fc8545b0316d0a1ce"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "public"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-public-add-reward-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-reward",
+      "descriptor": {
+        "execution": "api",
+        "family": "tip",
+        "label": "Add tip",
+        "title": "Add matching tip",
+        "icon": "add",
+        "group": "funds",
+        "order": 10,
+        "inputs": [
+          {
+            "key": "amountRaw",
+            "label": "Matching tip",
+            "type": "amount",
+            "min": "1",
+            "max": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+            "asset": "0x0000000000000000000000000000000000000000",
+            "decimals": 18
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": "0x0000000000000000000000000000000000000000",
+            "amountField": "amountRaw"
+          }
+        ],
+        "targets": [
+          "0xff3372d73131d56f4bc7ad2fc8545b0316d0a1ce"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "public"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-public-claim-credit-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-credit",
+      "descriptor": {
+        "execution": "api",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim credit",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {
+          "kind": {
+            "source": "state",
+            "key": "creditKind"
+          }
+        },
+        "spend": [],
+        "targets": [
+          "0xff3372d73131d56f4bc7ad2fc8545b0316d0a1ce"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "public"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-private-cancel-order-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "cancel-order",
+      "descriptor": {
+        "execution": "local",
+        "family": "cancel",
+        "label": "Cancel",
+        "title": "Cancel order",
+        "icon": "close",
+        "group": "manage",
+        "order": 40,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "targets": [
+          "0xb4746f38bfeac36372efb48a5825d442ed4d0ead"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "private"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-private-amend-order-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "amend-order",
+      "descriptor": {
+        "execution": "local",
+        "family": "update",
+        "label": "Update",
+        "title": "Update order",
+        "icon": "edit",
+        "group": "manage",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "limitPrice",
+            "label": "Limit price",
+            "type": "decimal",
+            "min": "0.000000000000000000000000000000000000000000000000000000000000000000000000000001",
+            "max": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+            "decimals": 78,
+            "unit": {
+              "baseAsset": {
+                "source": "state",
+                "key": "baseAsset"
+              },
+              "quoteAsset": {
+                "source": "state",
+                "key": "quoteAsset"
+              }
+            }
+          },
+          {
+            "key": "expiryRaw",
+            "label": "Expiry",
+            "type": "timestamp",
+            "min": "0",
+            "max": "253402300799",
+            "allowNoExpiry": true
+          }
+        ],
+        "defaults": {},
+        "spend": [],
+        "preview": "local",
+        "requiresLocalAmounts": true,
+        "targets": [
+          "0xb4746f38bfeac36372efb48a5825d442ed4d0ead"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "private"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-private-add-reward-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-reward",
+      "descriptor": {
+        "execution": "local",
+        "family": "tip",
+        "label": "Add tip",
+        "title": "Add matching tip",
+        "icon": "add",
+        "group": "funds",
+        "order": 10,
+        "inputs": [
+          {
+            "key": "amountRaw",
+            "label": "Matching tip",
+            "type": "amount",
+            "min": "1",
+            "max": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+            "asset": "0x0000000000000000000000000000000000000000",
+            "decimals": 18
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": "0x0000000000000000000000000000000000000000",
+            "amountField": "amountRaw"
+          }
+        ],
+        "targets": [
+          "0xb4746f38bfeac36372efb48a5825d442ed4d0ead"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "private"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-private-claim-credit-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-credit",
+      "descriptor": {
+        "execution": "local",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim credit",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {
+          "kind": {
+            "source": "state",
+            "key": "creditKind"
+          }
+        },
+        "spend": [],
+        "targets": [
+          "0xb4746f38bfeac36372efb48a5825d442ed4d0ead"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "private"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-private-reveal-order-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "reveal-order",
+      "descriptor": {
+        "execution": "local",
+        "family": "reveal",
+        "label": "Reveal",
+        "title": "Reveal order",
+        "icon": "eye",
+        "group": "read",
+        "order": 0,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "targets": [
+          "0xb4746f38bfeac36372efb48a5825d442ed4d0ead"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "order",
+          "book": "private"
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-order-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode0-add-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-liquidity",
+      "descriptor": {
+        "execution": "api",
+        "family": "fund",
+        "label": "Add",
+        "title": "Add liquidity",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "amount0Raw",
+            "label": "Token 1",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token0Decimals"
+            }
+          },
+          {
+            "key": "amount1Raw",
+            "label": "Token 2",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token1Decimals"
+            }
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "amountField": "amount0Raw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "amountField": "amount1Raw"
+          }
+        ],
+        "preview": "api",
+        "requiresLocalAmounts": false,
+        "targets": [
+          "0xbc456c56c5637f09d42601180ba74a98f016e647"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 0
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode0-remove-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "remove-liquidity",
+      "descriptor": {
+        "execution": "api",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw liquidity",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "sharesRaw",
+            "label": "Amount",
+            "type": "amount",
+            "min": "1",
+            "max": {
+              "source": "state",
+              "key": "availableSharesRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "decimals": 18,
+            "display": "percentage"
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "amountField": "sharesRaw"
+          }
+        ],
+        "preview": "api",
+        "requiresLocalAmounts": false,
+        "targets": [
+          "0xbc456c56c5637f09d42601180ba74a98f016e647"
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 0
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode0-claim-fees-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-fees",
+      "descriptor": {
+        "execution": "local",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim fees",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 0
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode1-add-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "fund",
+        "label": "Add",
+        "title": "Add liquidity",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "amount0Raw",
+            "label": "Token 1",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token0Decimals"
+            }
+          },
+          {
+            "key": "amount1Raw",
+            "label": "Token 2",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token1Decimals"
+            }
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "amountField": "amount0Raw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "amountField": "amount1Raw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 1
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode1-remove-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "remove-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw liquidity",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "sharesRaw",
+            "label": "Amount",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "decimals": 18,
+            "display": "percentage"
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "amountField": "sharesRaw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": true,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 1
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode1-claim-fees-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-fees",
+      "descriptor": {
+        "execution": "local",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim fees",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "requiresLocalAmounts": true,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 1
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode1-reveal-position-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "reveal-position",
+      "descriptor": {
+        "execution": "local",
+        "family": "reveal",
+        "label": "Reveal",
+        "title": "Reveal position",
+        "icon": "eye",
+        "group": "read",
+        "order": 0,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 1
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode1-reveal-accounting-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "reveal-accounting",
+      "descriptor": {
+        "execution": "local",
+        "family": "reveal",
+        "label": "Accounting",
+        "title": "Reveal accounting",
+        "icon": "refresh",
+        "group": "read",
+        "order": 1,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 1
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode2-add-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "fund",
+        "label": "Add",
+        "title": "Add liquidity",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "amount0Raw",
+            "label": "Token 1",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token0Decimals"
+            }
+          },
+          {
+            "key": "amount1Raw",
+            "label": "Token 2",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token1Decimals"
+            }
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "amountField": "amount0Raw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "amountField": "amount1Raw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 2
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode2-remove-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "remove-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw liquidity",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "sharesRaw",
+            "label": "Amount",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "decimals": 18,
+            "display": "percentage"
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "amountField": "sharesRaw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": true,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 2
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode2-claim-fees-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-fees",
+      "descriptor": {
+        "execution": "local",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim fees",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "requiresLocalAmounts": true,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 2
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode2-reveal-position-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "reveal-position",
+      "descriptor": {
+        "execution": "local",
+        "family": "reveal",
+        "label": "Reveal",
+        "title": "Reveal position",
+        "icon": "eye",
+        "group": "read",
+        "order": 0,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 2
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode2-reveal-accounting-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "reveal-accounting",
+      "descriptor": {
+        "execution": "local",
+        "family": "reveal",
+        "label": "Accounting",
+        "title": "Reveal accounting",
+        "icon": "refresh",
+        "group": "read",
+        "order": 1,
+        "inputs": [],
+        "defaults": {},
+        "spend": []
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 2
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode3-add-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "add-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "fund",
+        "label": "Add",
+        "title": "Add liquidity",
+        "icon": "add",
+        "group": "funds",
+        "order": 20,
+        "inputs": [
+          {
+            "key": "amount0Raw",
+            "label": "Token 1",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token0Decimals"
+            }
+          },
+          {
+            "key": "amount1Raw",
+            "label": "Token 2",
+            "type": "amount",
+            "min": "1",
+            "max": "340282366920938463463374607431768211455",
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "decimals": {
+              "source": "state",
+              "key": "token1Decimals"
+            }
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "token0Address"
+            },
+            "amountField": "amount0Raw"
+          },
+          {
+            "asset": {
+              "source": "state",
+              "key": "token1Address"
+            },
+            "amountField": "amount1Raw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 3
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode3-remove-liquidity-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "remove-liquidity",
+      "descriptor": {
+        "execution": "local",
+        "family": "withdraw",
+        "label": "Withdraw",
+        "title": "Withdraw liquidity",
+        "icon": "download",
+        "group": "funds",
+        "order": 30,
+        "inputs": [
+          {
+            "key": "sharesRaw",
+            "label": "Amount",
+            "type": "amount",
+            "min": "1",
+            "max": {
+              "source": "state",
+              "key": "availableSharesRaw"
+            },
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "decimals": 18,
+            "display": "percentage"
+          },
+          {
+            "key": "slippageBps",
+            "label": "Slippage (bps)",
+            "value": "50",
+            "type": "decimal",
+            "min": "0",
+            "max": "1000",
+            "decimals": 0
+          }
+        ],
+        "defaults": {},
+        "spend": [
+          {
+            "asset": {
+              "source": "state",
+              "key": "lpTokenAddress"
+            },
+            "amountField": "sharesRaw"
+          }
+        ],
+        "preview": "local",
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 3
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cipherdex-2632500-mode3-claim-fees-v1",
+      "chainId": 2632500,
+      "protocolId": "cipherdex",
+      "actionId": "claim-fees",
+      "descriptor": {
+        "execution": "local",
+        "family": "claim",
+        "label": "Claim",
+        "title": "Claim fees",
+        "icon": "download",
+        "group": "funds",
+        "order": 10,
+        "inputs": [],
+        "defaults": {},
+        "spend": [],
+        "requiresLocalAmounts": false,
+        "targets": [
+          {
+            "source": "context",
+            "key": "managementAddress"
+          }
+        ]
+      },
+      "deployment": {
+        "kind": "local",
+        "capability": "cipherdex-deployment-v1",
+        "scope": {
+          "kind": "liquidity",
+          "mode": 3
+        }
+      },
+      "execution": {
+        "kind": "local",
+        "capability": "cipherdex-liquidity-v1"
+      }
+    }
+  ]
+}
