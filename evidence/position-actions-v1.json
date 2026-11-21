@@ -1,0 +1,127 @@
+{
+  "deployments": {
+    "carbon": [
+      {
+        "chainId": 1,
+        "controller": "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1",
+        "voucher": "0x3660f04b79751e31128f6378eac70807e38f554e",
+        "integrity": {
+          "0xc537e898cd774e2dcba3b14ea6f34c93d5ea45e1": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x1e08049c180e25478bf7a0357171547b7332bf2c",
+            "implementationCodeHash": "0xcc6f9ba53c3a971839d96b1f632122c47e5eff1624670a562c589e707ce19983"
+          },
+          "0x3660f04b79751e31128f6378eac70807e38f554e": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0x928e1f741e909019fa85db08bc2479fdbfdfdab1f16965c44a672fbde5e0ad80",
+            "implementation": "0x460cb0b4fb97b5a05b6105d7fd8d464902109d0a",
+            "implementationCodeHash": "0x50496e8e65eddb1dfad9bef429c4a73401c94954f7f093e48d7c0d1640e1b5bf"
+          }
+        }
+      },
+      {
+        "chainId": 2632500,
+        "controller": "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea",
+        "voucher": "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5",
+        "integrity": {
+          "0x59f21012b2e9ba67ce6a7605e74f945d0d4c84ea": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0x5bca3389786385a35bca14c2d0582adc6cb2482e",
+            "implementationCodeHash": "0x557454b836c5246f2adc3d61bf4e4a441e7cd64c59e59e018884168b5b5b3e1a"
+          },
+          "0xa4682a2a5fe02feff8bd200240a41ad0e6eaf8d5": {
+            "kind": "eip1967",
+            "proxyCodeHash": "0xf4ddd1cb9133afe31f17786f869776b165182681fe1d97965c4da62161a8db54",
+            "implementation": "0xb0d39990e1c38b50d0b7f6911525535fbacb4c26",
+            "implementationCodeHash": "0x7623525e14583110e59ec7ee5fe7ee6a708926867861377737d94b12c56daaf1"
+          }
+        }
+      }
+    ],
+    "cipherdex": {
+      "chainId": 2632500,
+      "publicBook": "0xff3372d73131d56f4bc7ad2fc8545b0316d0a1ce",
+      "privateBook": "0xb4746f38bfeac36372efb48a5825d442ed4d0ead",
+      "liquidityRouter": "0xbc456c56c5637f09d42601180ba74a98f016e647",
+      "marketPresentationRevision": "9aea88110602c3ba168278acf39374540d3a22db9d20fae9cefc060f1b4d0c70"
+    }
+  },
+  "observations": {
+    "carbon": {
+      "source": "https://github.com/bancorprotocol/carbon-contracts/tree/4a1888643eb094310c9ac6ae93f1ba8eaaa9822c/deployments",
+      "artifacts": [
+        "CarbonController_Proxy.json",
+        "CarbonController_Implementation.json",
+        "Voucher_Proxy.json",
+        "Voucher_Implementation.json"
+      ],
+      "implementationSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+      "checks": [
+        "Compare each artifact's creation bytecode plus ABI-encoded constructor arguments with the successful creation transaction input and its created address.",
+        "At the recorded block check eth_chainId, eth_getStorageAt(proxy, implementationSlot), keccak256(eth_getCode) for proxy and implementation, and Voucher.controller() == controller. Recheck the block hash after the reads."
+      ],
+      "networks": [
+        {
+          "chainId": 1,
+          "directory": "mainnet",
+          "rpc": "https://ethereum-rpc.publicnode.com",
+          "creationSource": "eth_getTransactionByHash and eth_getTransactionReceipt",
+          "blockNumber": 26465059,
+          "blockHash": "0xdfe0f9c67a013146e07fc93e30d8ad2110af9c14a842247a55476e86235e9d34",
+          "blockTime": "2026-11-21T17:45:59Z"
+        },
+        {
+          "chainId": 2632500,
+          "directory": "coti",
+          "rpc": "https://mainnet.coti.io/rpc",
+          "creationSource": "https://mainnet.cotiscan.io/api/v2/transactions/{artifact.transactionHash}",
+          "blockNumber": 10520449,
+          "blockHash": "0x4fc98be37466a89d9d0d15c98ba0a8efdd3d09fa9cf73bab588f5cb613f85c65",
+          "blockTime": "2026-11-21T18:06:07Z"
+        }
+      ]
+    },
+    "cipherdex": {
+      "chainId": 2632500,
+      "repository": "cipherdex-protocol",
+      "revision": "4ecbd26065cadece00d7d4757e03f75a56ac7ea1",
+      "selection": "docs/examples/mainnet-integration.ts",
+      "manifests": [
+        {
+          "path": "deployments/coti-mainnet-private-auto-cc90c010a2225cfc59f10a65b395a33ba2e888c5.json",
+          "sha256": "79a4bf27dd0c610e987bb32feb6915d6c16fa8ffb4f835052c80a57b40c5ffc5",
+          "fields": {
+            "publicBook": "components['public.matchingBook']",
+            "privateBook": "components['private.book']"
+          }
+        },
+        {
+          "path": "deployments/coti-mainnet-hybrid-45361a57e9376e097d516869f6b84be2883d0bdf.json",
+          "sha256": "48458eba6c55a35e5ef7cc9b7bfe10c30b0a09fda6efd3070f1dd53706f9b58c",
+          "fields": {
+            "liquidityRouter": "sdk.publicPolicy.liquidityRouter"
+          }
+        }
+      ],
+      "rpc": "https://mainnet.coti.io/rpc",
+      "blockNumber": 10520424,
+      "blockHash": "0xd50a10f8af5cdd91be64de4cbc62fd1889a9e5827e7da6f93277d588a1229ac6",
+      "runtimeCodeHashes": {
+        "publicBook": "0x0de18007a43ed424d937fc442ce355cd8951ab0f93bb4e0aabef716ff609d2f9",
+        "privateBook": "0x323cb74798d052448971cb1269cd3204f18041533789ad8b32baea88417c37f7",
+        "liquidityRouter": "0x92cd14de9b46dbd6ed2adb6726424b8400c939f50fbffd414994a51e607bf08b"
+      }
+    },
+    "marketPresentation": {
+      "repository": "CipherTools-indexer",
+      "revision": "ece0c7da5df06d33d2c54d0522e50eeb0b4a3f9d",
+      "source": "src/config/market-presentation.json",
+      "parser": "src/config/marketPresentation.ts",
+      "computation": "SHA-256 of JSON.stringify(parsed policy), without the revision field.",
+      "corroboratedBy": "https://indexer.ciphertrade.org/v1/market-presentation",
+      "observedDate": "2026-11-21"
+    }
+  }
+}

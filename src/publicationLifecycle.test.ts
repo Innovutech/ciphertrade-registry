@@ -5,6 +5,7 @@ import { metadataDigest, signatureDigest, type MetadataKind, type TrustPayload }
 import { signTrust, signPublication, preparedDigest, compactPublication, type PreparedPublication } from './publisher.ts';
 import { verifyPrevious, finalizePublication, catalogDigest } from './publicationLifecycle.ts';
 import { emptyConfigurationFixture } from './configurationFixtures.ts';
+import { positionPolicyWithdrawals } from './positionPolicyDescriptors.ts';
 
 const root = new ethers.SigningKey('0x' + '11'.repeat(32));
 const key = new ethers.SigningKey('0x' + '22'.repeat(32));
@@ -168,4 +169,41 @@ test('a pre-migration approved publication cannot renew or publish without compl
   const incomplete = { ...prepared, records: prepared.records.filter(row => row.kind === 'token') };
   assert.throws(() => signPublication(incomplete, preparedDigest(incomplete), trust(), roots, { token: key.privateKey }), /Incomplete/);
   assert.throws(() => compactPublication(legacy), /Incomplete/);
+});
+
+test('existing publication rolls from no policies through reviewed additions and an explicit renewable withdrawal', () => {
+  const descriptor = new ethers.SigningKey('0x' + '55'.repeat(32));
+  const signedTrust = trust({ ...policy, keys: [...policy.keys, { id: 'descriptors', publicKey: descriptor.compressedPublicKey,
+    kinds: ['descriptor'], notBefore: now - 2000, expiresAt: null }] });
+  const keys = { token: key.privateKey, configuration: configurationKey.privateKey, descriptors: descriptor.privateKey };
+  const publish = (p: PreparedPublication) => verifyPrevious(compactPublication(signPublication(p, preparedDigest(p), signedTrust, roots, keys)), roots, now);
+  const display = { kind: 'descriptor' as const, scope: `1:${payload.address}:0x12345678`, payload: { display: { formats: {} } } };
+  const legacy = { ...prepared, records: [...prepared.records, display] };
+  const old = publish(legacy);
+  const params = { roots, trust: signedTrust, now };
+  assert.equal(publish(finalizePublication({ ...params, mode: 'renewal', previous: old })).contentDigest, old.contentDigest);
+  const scope = 'position-actions:v1:1';
+  const fixture = { schemaVersion: 1, id: 'fixture-reveal', chainId: 1, protocolId: 'cipherdex', actionId: 'reveal-position',
+    descriptor: { execution: 'local', family: 'reveal', label: 'Test', title: 'Test', icon: 'eye', group: 'read', order: 0, inputs: [], defaults: {}, spend: [] },
+    deployment: { kind: 'local', capability: 'cipherdex-deployment-v1', scope: { kind: 'liquidity', mode: 1 } },
+    execution: { kind: 'local', capability: 'cipherdex-liquidity-v1' } };
+  const approved = { ...legacy, baseDigest: old.contentDigest, records: [...legacy.records,
+    { kind: 'descriptor' as const, scope, payload: { schemaVersion: 1, policies: [fixture] } }] };
+  const active = publish(finalizePublication({ ...params, mode: 'changes', previous: old, reviewed: approved, approvedDigest: preparedDigest(approved) }));
+  assert.equal(active.records.find(row => row.statement.scope === scope)?.statement.keyId, 'descriptors');
+  const renewal = publish(finalizePublication({ ...params, mode: 'renewal', previous: active }));
+  assert.equal(renewal.contentDigest, active.contentDigest);
+  const dropped = { ...legacy, baseDigest: active.contentDigest };
+  assert.throws(() => finalizePublication({ ...params, mode: 'changes', previous: renewal, reviewed: dropped, approvedDigest: preparedDigest(dropped) }), /empty position policy/);
+  const empty = { kind: 'descriptor' as const, scope, payload: { schemaVersion: 1, policies: [] } };
+  assert.deepEqual(positionPolicyWithdrawals(dropped.records, renewal), [empty]);
+  const retired = { ...dropped, records: [...dropped.records, empty] };
+  const baseline = publish(finalizePublication({ ...params, mode: 'changes', previous: renewal, reviewed: retired, approvedDigest: preparedDigest(retired) }));
+  assert.ok(baseline.sequence > renewal.sequence);
+  assert.deepEqual(baseline.records.find(row => row.statement.scope === scope)?.payload, empty.payload);
+  assert.equal(publish(finalizePublication({ ...params, mode: 'renewal', previous: baseline })).contentDigest, baseline.contentDigest);
+  assert.deepEqual(positionPolicyWithdrawals(retired.records, baseline), []);
+  assert.throws(() => finalizePublication({ ...params, mode: 'changes', previous: baseline, reviewed: approved, approvedDigest: preparedDigest(approved) }), /superseded/);
+  const mixed = { ...retired, records: [...legacy.records, { ...empty, payload: { schemaVersion: 1, policies: [{ ...fixture, chainId: 2 }] } }] };
+  assert.throws(() => signPublication(mixed, preparedDigest(mixed), signedTrust, roots, keys), /chain differs/);
 });

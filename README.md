@@ -208,3 +208,43 @@ record limit. Formatted input files have a separate bounded 1 MiB read allowance
 Releases also retain `review-provenance.json` for future source comparisons. It is
 informational and is matched to the verified catalog digest; consumers continue
 to use `publication.json` and `publication.sha256` without a protocol change.
+
+## Position action policies
+
+The existing `publication.json` carries one ordinary `descriptor` record per
+curated chain, scoped exactly to `position-actions:v1:<chainId>` (positive
+canonical decimal). Its payload is `{"schemaVersion":1,"policies":[...]}`.
+Only `catalog/position-actions.<chainId>.json` supplies these records; every
+policy must pass the shared parser and match the chain in the filename.
+External ERC-7730 registry records remain display-only.
+
+Change the curated file through normal metadata review. Removing policies
+replaces the entire chain catalog; removing a previously published file
+produces a reviewed empty catalog at the same scope. Renewal re-signs only
+the authenticated previous contents (including an empty catalog); it never
+imports a pending file. Publications predating these records remain valid.
+There is no separate key, approval, release, endpoint, or renewal switch.
+
+The unsigned candidates cover all 33 actions in the initial templates: four
+Carbon strategy actions on each of Ethereum and COTI, plus nine CipherDEX
+order actions and sixteen liquidity actions on COTI. The [deployment evidence](evidence/position-actions-v1.json)
+records the source commits, per-chain observation blocks, and exact inputs used
+to reproduce both catalogs. The publisher never imports that evidence or fetches
+deployment data during preparation, signing or renewal.
+
+Carbon binds both proxies to their observed runtime hashes, EIP-1967
+implementations and implementation runtime hashes. CipherDEX still requires
+the native deployment and execution validators; a book identity alone is not
+trading permission. Public order amendment pins the revision derived from the
+committed indexer policy, corroborated by the public endpoint. For an upgrade
+or revision change, repeat the evidence checks and submit the new catalog to
+ordinary metadata review. These observations are not approvals.
+
+The existing authenticated wallet positions response body may include
+`positionPolicies: { trust, record }`. There is no policy transport header.
+`trust` is the signed metadata trust policy; `record` is the original signed
+descriptor record for the requested chain, or `null` if none is available.
+Verify trust and the record's kind, exact chain scope, signature, digest,
+sequence and validity before using its parsed policies. An omitted field or
+a null record grants no authority; neither is a signed empty catalog.
+The shared engine still requires the specified native validation at execution.
