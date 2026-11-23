@@ -13,7 +13,7 @@
     "tokenAddress": "0xE180548963Fc30329e15BC104d753f82a8C18865",
     "private": false,
     "tokenSymbol": "WCOTI",
-    "name": "CipherTrade Wrapped COTI",
+    "name": "Wrapped COTI",
     "logoUrl": "https://assets.coingecko.com/coins/images/2962/large/Coti.png",
     "cgCoinId": "coti",
     "decimals": 18,
